@@ -1,5 +1,9 @@
 # json2table
 
+## Feature :
+display json as table
+
+can copy value path
 ## Project setup
 ```
 yarn install
