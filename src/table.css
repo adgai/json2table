@@ -1,0 +1,111 @@
+
+html {
+    font-family: sans-serif;
+    -ms-text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0px;
+}
+
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 20px auto auto;
+    padding: 20px 5px 5px;
+}
+
+td{
+    cursor: url("./assets/cursor/Copy.cur"), copy;
+}
+td, th {
+    padding: 4px;
+}
+thead{
+    background-color: #dee1e1;
+}
+thead{
+    color: #92278f;
+}
+#non_header_table{
+    border-color: #78ea04;
+}
+
+.json_input{
+    width: 100%;
+    height: 300px;
+}
+
+.header{
+    height: 80px;
+    width: 100%;
+    text-align: center;
+    background-color: aliceblue;
+
+    align-items: center;
+    display: -webkit-flex;
+    display: inline-grid;
+}
+/*.pure-table {*/
+/*    border-collapse: collapse;*/
+/*    border-spacing: 0;*/
+/*    empty-cells: show;*/
+/*    border: 1px solid #cbcbcb;*/
+/*}*/
+
+/*.pure-table caption {*/
+/*    color: #000;*/
+/*    font: italic 85%/1 arial, sans-serif;*/
+/*    padding: 1em 0;*/
+/*    text-align: center;*/
+/*}*/
+
+/*.pure-table td, .pure-table th {*/
+/*    border-left: 1px solid #cbcbcb;*/
+/*    border-width: 0 0 0 1px;*/
+/*    font-size: inherit;*/
+/*    margin: 0;*/
+/*    overflow: visible;*/
+/*    padding: .5em 1em;*/
+/*}*/
+
+/*.pure-table thead {*/
+/*    background-color: #e0e0e0;*/
+/*    color: #000;*/
+/*    text-align: left;*/
+/*    vertical-align: bottom;*/
+/*}*/
+
+/*.pure-table td {*/
+/*    background-color: transparent;*/
+/*}*/
+
+/*.pure-table-odd td {*/
+/*    background-color: #f2f2f2;*/
+/*}*/
+.github-corner:hover .octo-arm {
+    animation: octocat-wave 560ms ease-in-out
+}
+
+@keyframes octocat-wave {
+    0%, 100% {
+        transform: rotate(0)
+    }
+    20%, 60% {
+        transform: rotate(-25deg)
+    }
+    40%, 80% {
+        transform: rotate(10deg)
+    }
+}
+
+@media (max-width: 500px) {
+    .github-corner:hover .octo-arm {
+        animation: none
+    }
+
+    .github-corner .octo-arm {
+        animation: octocat-wave 560ms ease-in-out
+    }
+}
