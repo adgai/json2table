@@ -23,7 +23,7 @@ td, th {
     padding: 4px;
 }
 thead{
-    background-color: #dee1e1;
+    /*background-color: #dee1e1;*/
 }
 thead{
     color: #92278f;
@@ -108,4 +108,18 @@ thead{
     .github-corner .octo-arm {
         animation: octocat-wave 560ms ease-in-out
     }
+}
+.json-selected{
+    background-color: rgba(255, 0, 0, 0.27);
+}
+.td_content{
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+.path_show{
+    display: flex;
+    flex-direction: column;
 }

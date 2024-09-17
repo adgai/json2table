@@ -25,8 +25,9 @@
 
     </textarea>
     </div>
-    <div>
-      <span class="path_show">{{jp}}</span>
+    <div class="path_show">
+      <span class="path_show">select path:{{ jp }}</span>
+      <span class="path_show">value path:{{ jp_v }}</span>
     </div>
     <div>
       <div v-html="tableHtmlStr">
@@ -42,10 +43,10 @@
 import {onMounted, onUpdated, ref, watch} from 'vue'
 import {genHtml} from "@/util/nJsonTable";
 
-let json_path = ref('')
-let jp = '123'
+// let json_path = ref('')
+let jp = ref('123')
 // let  a = '231'
-
+let jp_v = ref('456')
 const jsonStr = ref('{\n' +
     '   "results" : [\n' +
     '      {\n' +
@@ -111,6 +112,8 @@ const jsonStr = ref('{\n' +
     '}')
 const tableHtmlStr = ref('')
 
+
+
 // 可以直接侦听一个 ref
 watch(jsonStr, async (newQuestion) => {
       if (newQuestion === '') {
@@ -148,23 +151,25 @@ onMounted(() => {
 })
 onUpdated(() => {
 
-  var comments = document.getElementsByTagName('td');
+  var comments =Array.from( document.getElementsByClassName('tds_content'));
   var numComments = comments.length;
 
 
   for (var i = 0; i < numComments; i++) {
-    comments[i].addEventListener('click', (e) => {
-      console.log(1332313)
-      window.event ? window.event.cancelBubble = true : e.stopPropagation();
-      const path = e.target.getAttribute('p');
-      // console.log(path)
-      navigator.clipboard.writeText(path);
 
-      json_path.value = path
-      console.log(json_path.value)
-      jp = path
-      const elementsByClassName = document.getElementsByClassName('path_show')[0];
-      elementsByClassName.textContent = path
+    comments[i].addEventListener('click', function (e) {
+      console.log(1332313);
+
+      // 使用 e.stopPropagation() 来阻止事件冒泡
+      e.stopPropagation();
+
+      // 使用 `this` 获取被点击的元素
+      console.log(this);
+
+      // 获取被点击元素的类名
+      jp_v.value = this.classList[0];
+
+      // 这里可以添加其他代码
     }, false);
 
 
@@ -186,6 +191,53 @@ onUpdated(() => {
     }
 
   }
+
+
+  var th_centers = document.getElementsByClassName('th_center');
+  const length = th_centers.length;
+  for (let i = 0; i < length; i++) {
+    th_centers[i].addEventListener('click', function (e) {
+      e.stopPropagation();
+      jp.value = this.classList.toString()
+      console.log(jp)
+      var j_ses = Array.from(document.getElementsByClassName('json-selected'));
+      j_ses.forEach(jS => {
+        // console.log('=================' + jS.classList);
+        jS.classList.remove('json-selected');
+        // console.log('=================' + jS.classList);
+      });
+
+
+      const classListElement = this.classList[1];
+      // console.log('222222222222' + this.classList);
+      var alls = document.getElementsByClassName(classListElement);
+      const length1 = alls.length;
+
+      for (let i = 0; i < length1; i++) {
+        alls[i].classList.add('json-selected')
+      }
+    })
+
+    // th_centers[i].onmouseover = function (e) {
+    //   window.event ? window.event.cancelBubble = true : e.stopPropagation();
+    //
+    //   var element = document.elementFromPoint(e.pageX, e.pageY);
+    //
+    //   const tagName = element.tagName;
+    //   // console.log(tagName)
+    //   if (tagName === 'TD') {
+    //     this.style.backgroundColor = "#8bc34a45"
+    //   }
+    //
+    // }
+    // th_centers[i].onmouseout = function (e) {
+    //   window.event ? window.event.cancelBubble = true : e.stopPropagation();
+    //   this.style.backgroundColor = "";
+    // }
+
+  }
+
+
 })
 </script>
 <style type="text/css">

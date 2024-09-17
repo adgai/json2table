@@ -1,13 +1,13 @@
-
-function genHtml(json: any, path: string = ''): string {
+function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
 
     if (json == null) {
         return ''
     } else if (json instanceof Array) {
 
+        const t_path = pt_path
         // gen theader
-        const headerRoot = getHeaderRoot(json);
-        const headerStr = thead(headerRoot);
+        const hm = getHeaderRoot(json);
+        const headerStr = thead(hm, t_path);
 
         const bodyArray: string[] = []
 
@@ -15,19 +15,21 @@ function genHtml(json: any, path: string = ''): string {
         for (let i = 0; i < json.length; i++) {
             const jsonElement = json[i];
             const path_i = path + '[' + i + ']';
-            const s1 = tbody(headerRoot, jsonElement, path_i);
+            const s1 = tbody(hm, jsonElement, path_i, t_path);
             bodyArray.push(s1)
         }
         return wrapTable(headerStr, bodyArray)
 
     } else if (json instanceof Object) {
-        const headerSet = getHeaderRoot(json);
+        const t_path = pt_path
 
-        const headerStr = thead(headerSet);
+        const hm = getHeaderRoot(json);
+
+        const headerStr = thead(hm, t_path);
 
         // add table body
 
-        const bodyStr = tbody(headerSet, json, path);
+        const bodyStr = tbody(hm, json, path, t_path);
 
 
         return wrapTable(headerStr, new Array<string>(bodyStr));
@@ -37,14 +39,26 @@ function genHtml(json: any, path: string = ''): string {
 
 }
 
-function getHeader(header: Set<string>, json: object): Set<string> {
+function getHeaderRoot(o: object): Map<string, any> {
+    const header = new Set<string>();
+    const hm: Map<string, any> = new Map
+
+    getHeader(header, hm, o);
+
+    // console.log(JSON.stringify(hm))
+    return hm
+}
+
+function getHeader(header: Set<string>, hm: Map<string, any>, json: object): Set<string> {
 
     if (json instanceof Array) {
         for (const jsonElement of json) {
-            getHeader(header, jsonElement)
+            getHeader(header, hm, jsonElement)
         }
     } else if (json instanceof Object) {
         for (const [k, v] of Object.entries(json)) {
+            hm.set(k, v instanceof Array)
+            // console.log(hm)
             header.add(k)
         }
     }
@@ -52,14 +66,7 @@ function getHeader(header: Set<string>, json: object): Set<string> {
 
 }
 
-function getHeaderRoot(o: object): Set<string> {
-    const header = new Set<string>();
-    getHeader(header, o);
-    return header
-}
-
-
-function thead(headerSet: Set<string>) {
+function thead(headerSet: Map<string, any>, t_path: string = '') {
 
     if (headerSet.size === 0) {
         return ''
@@ -68,34 +75,105 @@ function thead(headerSet: Set<string>) {
     // add table header
     tableHeaderHtmlStr = tableHeaderHtmlStr + '<thead> <tr>'
 
+    const th_left = document.createElement('div');
+    th_left.className = 'th_left'
+    // console.log(th_left.innerHTML)
+    const th_right = document.createElement('div');
+    th_right.className = 'th_right'
+
     for (const header of headerSet) {
-        tableHeaderHtmlStr += '<th>' + header + '</th>'
+        let s1 = ''
+        if (header[1]) {
+            s1 = '[*]'
+        }
+
+
+        console.log('-----------' + header[1].toString())
+        const s = t_path + '.' + header[0] + s1;
+
+        const th_center = document.createElement('div');
+        th_center.className = 'th_center'
+        th_center.classList.add(s)
+        th_center.textContent = header[0];
+
+        tableHeaderHtmlStr += '<th>' + th_left.outerHTML + th_center.outerHTML + th_right.outerHTML + '</th>'
     }
     tableHeaderHtmlStr = tableHeaderHtmlStr + '</tr> </thead> '
 
     return tableHeaderHtmlStr;
 }
 
-function tbody(headerSet: Set<string>, json: any, path: string = '') {
+function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: string) {
 
     let tableHeaderHtmlStr: string = ''
 
-    tableHeaderHtmlStr += '<tr>'
     // const button = '<div style="width: 20px;height: 20px"></div>'
 
-    if (headerSet.size === 0) {
-        const s = genHtml(json, path);
-        tableHeaderHtmlStr += '<td p=' + path + '>'  + s + '</td>'
+    const tr = document.createElement('tr');
+
+    if (hm.size === 0) {
+        const s = genHtml(json, path, t_path);
+
+        const td = document.createElement('td');
+        td.className = path
+        td.classList.add(t_path)
+        td.classList.add('tds_content')
+        td.innerHTML = s
+
+        const tddiv = document.createElement('div');
+        tddiv.classList.add(path)
+        tddiv.classList.add('td_content')
+        tddiv.appendChild(td)
+
+        // tableHeaderHtmlStr += td.outerHTML
+
+        tr.appendChild(tddiv)
     } else {
-        for (const header of headerSet) {
-            const josnElement = json[header];
-            const cur_path = path + '.' + header;
-            tableHeaderHtmlStr += '<td p=' + cur_path + '>'  +genHtml(josnElement, cur_path) + '</td>'
+        for (const header of hm) {
+            const josnElement = json[header[0]];
+            const cur_path = path + '.' + header[0];
+            let cur_t_path = t_path
+
+            // console.log(cur_path)
+            // console.log(cur_t_path)
+            if (header[1]) {
+                // cur_path +='[*]'
+                cur_t_path += '.' + header[0] + '[*]'
+            } else {
+                cur_t_path += '.' + header[0]
+            }
+
+            let x_path = ''
+            if (josnElement instanceof Array){
+                x_path = cur_path + '[*]'
+            }else {
+                 x_path = cur_path
+            }
+
+
+            const td = document.createElement('td');
+            td.className = x_path
+            td.classList.add(cur_t_path)
+
+            const s3 = genHtml(josnElement, cur_path, cur_t_path);
+
+
+            const tddiv = document.createElement('div');
+            tddiv.classList.add(cur_path)
+            tddiv.classList.add('td_content')
+            tddiv.innerHTML = s3
+
+            td.appendChild(tddiv)
+
+            td.classList.add('tds_content')
+
+            tr.appendChild(td)
         }
+
     }
 
 
-    tableHeaderHtmlStr += '</tr>'
+    tableHeaderHtmlStr += tr.outerHTML
     return tableHeaderHtmlStr
 
 }
@@ -123,6 +201,12 @@ function wrapTable(theader: string, tbodyArray: Array<string>): string {
     tableHeaderHtmlStr += '</tbody> '
 
     tableHeaderHtmlStr += '</table>'
+
+    const add_td = document.createElement('div');
+    add_td.textContent = 'add'
+
+    tableHeaderHtmlStr += add_td.outerHTML
+
     return tableHeaderHtmlStr
 
 }
