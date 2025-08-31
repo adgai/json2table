@@ -1,11 +1,11 @@
 <template>
   <div>
     <div class="header">
-      <span style="background-color: aliceblue;font-size: 20px">Move the mouse to the value of the object, and click to copy the path of value when the color changes to green.</span>
+      <span style="background-color: aliceblue;font-size: 20px">click value to copy value json path, click header to copy all value json path</span>
     </div>
 
     <div>
-      <a href="https://your-url" class="github-corner" aria-label="View source on GitHub">
+      <a href="https://github.com/adgai/json2table" target="_blank" class="github-corner" aria-label="View source on GitHub">
         <svg width="80" height="80" viewBox="0 0 250 250"
              style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
           <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
@@ -43,10 +43,14 @@
 import {onMounted, onUpdated, ref, watch} from 'vue'
 import {genHtml} from "@/util/nJsonTable";
 
+import { useToast } from "@/util/useToast"
+
+const { show } = useToast()
+
 // let json_path = ref('')
-let jp = ref('123')
+let jp = ref(' ')
 // let  a = '231'
-let jp_v = ref('456')
+let jp_v = ref('')
 const jsonStr = ref('{\n' +
     '   "results" : [\n' +
     '      {\n' +
@@ -168,6 +172,8 @@ onUpdated(() => {
 
       // 获取被点击元素的类名
       jp_v.value = this.classList[0];
+      show("提示：已复制 \n     "+this.classList[0])
+       navigator.clipboard.writeText(this.classList[0])
 
       // 这里可以添加其他代码
     }, false);
@@ -198,7 +204,12 @@ onUpdated(() => {
   for (let i = 0; i < length; i++) {
     th_centers[i].addEventListener('click', function (e) {
       e.stopPropagation();
-      jp.value = this.classList.toString()
+      const classs = this.classList.toString();
+      const jpv = classs.split(' ')[1];
+      jp.value = jpv
+       navigator.clipboard.writeText(jpv)
+      show("提示：已复制 \n     "+jpv)
+
       console.log(jp)
       var j_ses = Array.from(document.getElementsByClassName('json-selected'));
       j_ses.forEach(jS => {

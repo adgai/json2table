@@ -123,3 +123,23 @@ thead{
     display: flex;
     flex-direction: column;
 }
+
+.copy_value_tip{
+    position: absolute;
+    top: 100px;
+    right: 5px;
+    background-color: rgba(55, 255, 0, 0.1);
+    width: 300px;
+    height: 50px;
+    border-radius: 10px;
+    border: 2px black solid   ;
+    text-align: center;
+    align-items: center;
+}
+
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 0.5s;
+}
+.fade-enter-from, .fade-leave-to {
+    opacity: 0;
+}
