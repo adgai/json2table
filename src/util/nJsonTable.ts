@@ -93,7 +93,10 @@ function thead(headerSet: Map<string, any>, t_path: string = '') {
 
         const th_center = document.createElement('div');
         th_center.className = 'th_center'
-        th_center.classList.add(s)
+
+        // th_center.classList.add(s)
+        th_center.dataset.jspath = s
+
         th_center.textContent = header[0];
 
         tableHeaderHtmlStr += '<th>' + th_left.outerHTML + th_center.outerHTML + th_right.outerHTML + '</th>'
@@ -115,13 +118,22 @@ function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: strin
         const s = genHtml(json, path, t_path);
 
         const td = document.createElement('td');
-        td.className = path
-        td.classList.add(t_path)
+        // td.className = path
+        //
+        // td.classList.add(t_path)
+
+        td.dataset.jspath = path
+
         td.classList.add('tds_content')
+
+
         td.innerHTML = s
 
         const tddiv = document.createElement('div');
-        tddiv.classList.add(path)
+        // tddiv.classList.add(path)
+
+        tddiv.dataset.jspath = path
+
         tddiv.classList.add('td_content')
         tddiv.appendChild(td)
 
@@ -153,13 +165,15 @@ function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: strin
 
             const td = document.createElement('td');
             td.className = x_path
-            td.classList.add(cur_t_path)
+            // td.classList.add(cur_t_path)
+            td.dataset.jspath = cur_t_path
 
             const s3 = genHtml(josnElement, cur_path, cur_t_path);
 
 
             const tddiv = document.createElement('div');
-            tddiv.classList.add(cur_path)
+            // tddiv.classList.add(cur_path)
+            tddiv.dataset.jspath = cur_path
             tddiv.classList.add('td_content')
             tddiv.innerHTML = s3
 

@@ -5,7 +5,8 @@
     </div>
 
     <div>
-      <a href="https://github.com/adgai/json2table" target="_blank" class="github-corner" aria-label="View source on GitHub">
+      <a href="https://github.com/adgai/json2table" target="_blank" class="github-corner"
+         aria-label="View source on GitHub">
         <svg width="80" height="80" viewBox="0 0 250 250"
              style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
           <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
@@ -25,9 +26,22 @@
 
     </textarea>
     </div>
-    <div class="path_show">
-      <span class="path_show">select path:{{ jp }}</span>
-      <span class="path_show">value path:{{ jp_v }}</span>
+    <div class="path_show_container">
+      <div class="key-path path_show">
+        <span class="path_show_desc">key path:</span>
+        <span class="path_show_path">{{ jp }}</span>
+
+        <div class="copy_value" v-if="jp.valueOf()" @click="copyValue(jp,json_o)">copy value</div>
+      </div>
+
+      <div class="value-path path_show">
+        <span class="path_show_desc">value path:</span>
+        <span class="path_show_path">{{ jp_v }}</span>
+
+        <div class="copy_value" v-if="jp_v.valueOf()" @click="copyValue(jp_v,json_o)">copy value</div>
+      </div>
+
+
     </div>
     <div>
       <div v-html="tableHtmlStr">
@@ -43,12 +57,14 @@
 import {onMounted, onUpdated, ref, watch} from 'vue'
 import {genHtml} from "@/util/nJsonTable";
 
-import { useToast } from "@/util/useToast"
+import {useToast} from "@/util/useToast"
 
-const { show } = useToast()
+const {show} = useToast()
+const {JSONPath} = require('jsonpath-plus');
 
+let json_o = ref(null)
 // let json_path = ref('')
-let jp = ref(' ')
+let jp = ref('')
 // let  a = '231'
 let jp_v = ref('')
 const jsonStr = ref('{\n' +
@@ -117,7 +133,6 @@ const jsonStr = ref('{\n' +
 const tableHtmlStr = ref('')
 
 
-
 // 可以直接侦听一个 ref
 watch(jsonStr, async (newQuestion) => {
       if (newQuestion === '') {
@@ -126,11 +141,13 @@ watch(jsonStr, async (newQuestion) => {
       try {
         let json = JSON.parse(newQuestion);
         console.log(json)
+        json_o.value = json;
         tableHtmlStr.value = genHtml(
             json
         )
       } catch (e) {
         tableHtmlStr.value = newQuestion
+        console.log("e", e)
       }
     },
 )
@@ -143,6 +160,8 @@ onMounted(() => {
   }
   try {
     let json = JSON.parse(jsonStr.value);
+
+    json_o.value = json;
     console.log(json)
     tableHtmlStr.value = genHtml(
         json
@@ -155,7 +174,7 @@ onMounted(() => {
 })
 onUpdated(() => {
 
-  var comments =Array.from( document.getElementsByClassName('tds_content'));
+  var comments = Array.from(document.getElementsByClassName('tds_content'));
   var numComments = comments.length;
 
 
@@ -171,9 +190,12 @@ onUpdated(() => {
       console.log(this);
 
       // 获取被点击元素的类名
-      jp_v.value = this.classList[0];
-      show("提示：已复制 \n     "+this.classList[0])
-       navigator.clipboard.writeText(this.classList[0])
+      // const classListElement1 = this.classList[0];
+      const classListElement1 = this.dataset.jspath;
+
+      jp_v.value = classListElement1;
+      show("提示：已复制 \n     " + classListElement1)
+      navigator.clipboard.writeText(classListElement1)
 
       // 这里可以添加其他代码
     }, false);
@@ -184,7 +206,11 @@ onUpdated(() => {
 
       var element = document.elementFromPoint(e.pageX, e.pageY);
 
+      if (!element) {
+        return;
+      }
       const tagName = element.tagName;
+
       // console.log(tagName)
       if (tagName === 'TD') {
         this.style.backgroundColor = "#8bc34a45"
@@ -204,11 +230,12 @@ onUpdated(() => {
   for (let i = 0; i < length; i++) {
     th_centers[i].addEventListener('click', function (e) {
       e.stopPropagation();
-      const classs = this.classList.toString();
-      const jpv = classs.split(' ')[1];
+      // const classs = this.classList.toString();
+      // const jpv = classs.split(' ')[1];
+      const jpv = this.dataset.jspath
       jp.value = jpv
-       navigator.clipboard.writeText(jpv)
-      show("提示：已复制 \n     "+jpv)
+      navigator.clipboard.writeText(jpv)
+      show("提示：已复制 \n     " + jpv)
 
       console.log(jp)
       var j_ses = Array.from(document.getElementsByClassName('json-selected'));
@@ -250,6 +277,18 @@ onUpdated(() => {
 
 
 })
+
+function copyValue(jsonPath, json) {
+   const value = JSONPath({
+    path: jsonPath,
+    json: json
+  });
+
+  navigator.clipboard.writeText(JSON.stringify(value));
+  show("提示：已复制 \n     " + value)
+
+
+}
 </script>
 <style type="text/css">
 @import url(../table.css);
