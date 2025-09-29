@@ -18,7 +18,9 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
             const s1 = tbody(hm, jsonElement, path_i, t_path);
             bodyArray.push(s1)
         }
-        return wrapTable(headerStr, bodyArray)
+        const s = wrapTable(headerStr, bodyArray);
+        console.log(s);
+        return s
 
     } else if (json instanceof Object) {
         const t_path = pt_path
@@ -129,17 +131,17 @@ function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: strin
 
         td.innerHTML = s
 
-        const tddiv = document.createElement('div');
-        // tddiv.classList.add(path)
-
-        tddiv.dataset.jspath = path
-
-        tddiv.classList.add('td_content')
-        tddiv.appendChild(td)
+        // const tddiv = document.createElement('div');
+        // // tddiv.classList.add(path)
+        //
+        // tddiv.dataset.jspath = path
+        //
+        // tddiv.classList.add('td_content')
+        // tddiv.appendChild(td)
 
         // tableHeaderHtmlStr += td.outerHTML
 
-        tr.appendChild(tddiv)
+        tr.appendChild(td)
     } else {
         for (const header of hm) {
             const josnElement = json[header[0]];
@@ -156,10 +158,10 @@ function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: strin
             }
 
             let x_path = ''
-            if (josnElement instanceof Array){
+            if (josnElement instanceof Array) {
                 x_path = cur_path + '[*]'
-            }else {
-                 x_path = cur_path
+            } else {
+                x_path = cur_path
             }
 
 
@@ -191,40 +193,49 @@ function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: strin
     return tableHeaderHtmlStr
 
 }
-
 function wrapTable(theader: string, tbodyArray: Array<string>): string {
-
-    let tableHeaderHtmlStr = ''
-
+    // 先生成 table
+    let tableHtml = ''
 
     if (theader === '') {
-        tableHeaderHtmlStr += '<table  id="non_header_table" border="2">'
+        tableHtml += '<table id="non_header_table" border="2">'
     } else {
-        tableHeaderHtmlStr += '<table    border="2">'
+        tableHtml += '<table border="2">'
     }
 
-
-    tableHeaderHtmlStr += theader
-
-    tableHeaderHtmlStr += '<tbody>'
+    tableHtml += theader
+    tableHtml += '<tbody>'
 
     for (const tbody of tbodyArray) {
-        tableHeaderHtmlStr += tbody
+        tableHtml += tbody
     }
 
-    tableHeaderHtmlStr += '</tbody> '
+    tableHtml += '</tbody>'
+    tableHtml += '</table>'
 
-    tableHeaderHtmlStr += '</table>'
+    // 用 DOM 拼容器
+    const container = document.createElement('div')
+    container.className = 'table-container'
+    container.innerHTML = tableHtml
 
-    const add_td = document.createElement('div');
-    add_td.textContent = 'add'
+    const right_add = document.createElement('div')
+    right_add.textContent = '+'
+    right_add.className = 'right_add'
 
-    tableHeaderHtmlStr += add_td.outerHTML
+    const bottom_add = document.createElement('div')
+    bottom_add.textContent = '+'
+    bottom_add.className = 'bottom_add'
 
-    return tableHeaderHtmlStr
+    const cooner = document.createElement('div')
+    cooner.textContent = '+'
+    cooner.className = 'cooner'
 
+    container.appendChild(right_add)
+    container.appendChild(bottom_add)
+    container.appendChild(cooner)
+
+    return container.outerHTML
 }
-
 
 // let s = genHtml(
 //   JSON.parse('[{\"code\":0,\"message\":\"0\",\"ttl\":1,\"data\":{\"at\":0,\"chat\":0,\"like\":0,\"reply\":0,\"sys_msg\":0,\"up\":0}},{"code":0,"message":"0","ttl":1,"data":{"at":0,"chat":0,"like":0,"reply":0,"sys_msg":0,"up":0}}]')

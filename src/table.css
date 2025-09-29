@@ -12,7 +12,7 @@ body {
 table {
     border-collapse: collapse;
     border-spacing: 0;
-    margin: 20px auto auto;
+    /*margin: 20px auto auto;*/
     padding: 20px 5px 5px;
 }
 
@@ -189,4 +189,47 @@ thead{
 
 .copy_value:hover {
     background-color: #1d4ed8;
+}
+
+.table-container {
+    position: relative;
+    display: inline-block; /* 表格多大容器就多大 */
+}
+
+.table-container table {
+    border-collapse: collapse;
+}
+
+.right_add {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -24px;
+    width: 20px;
+    background: lightblue;
+    cursor: pointer;
+}
+
+.bottom_add {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -24px;
+    height: 20px;
+    background: lightgreen;
+    cursor: pointer;
+}
+
+.cooner {
+    position: absolute;
+    right: -23px;
+    bottom: -23px;
+    width: 20px;
+    height: 20px;
+    background: orange;
+    cursor: nwse-resize;
+}
+.td_content{
+    padding-bottom: 30px;
+    padding-right: 30px;
 }
