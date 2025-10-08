@@ -18,8 +18,7 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
             const s1 = tbody(hm, jsonElement, path_i, t_path);
             bodyArray.push(s1)
         }
-        const s = wrapTable(headerStr, bodyArray);
-        console.log(s);
+        const s = wrapTable(path, headerStr, bodyArray);
         return s
 
     } else if (json instanceof Object) {
@@ -34,11 +33,76 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
         const bodyStr = tbody(hm, json, path, t_path);
 
 
-        return wrapTable(headerStr, new Array<string>(bodyStr));
+        return wrapTable(path, headerStr, new Array<string>(bodyStr));
     } else {
-        return json.toString();
+        //
+        // json.split('\n').map((line: string) => {
+        //
+        // })
+        //
+        // console.log(json.includes('\n'))
+        //
+        // return json.toString();
+        //
+
+        const numeric = isNumeric(json);
+        if (numeric) {
+            return json.toString();
+        }
+        if (!json.includes('\n')) {
+            return json.toString();
+        }
+
+        return buildEditableChildrenArray(json)
+            .map(elem => {
+                return elem.outerHTML
+            })
+            .join('');
     }
 
+}
+
+export function isNumeric(str: unknown): str is string {
+    if (typeof str !== 'string') {
+        return Number.isFinite(str);
+    }
+    const s = str.trim();
+    if (s === '') return false;
+    // Number() 会拒绝 '123abc'、''、'   '，但会接受 '1e3'
+    const n = Number(s);
+    return Number.isFinite(n);
+}
+
+
+/** 同上，但返回数组，便于你自行插入/排序/diff */
+export function buildEditableChildrenArray(
+    text: string,
+    opts?: { lineTag?: keyof HTMLElementTagNameMap; lineClass?: string }
+): HTMLElement[] {
+    const {lineTag = 'div', lineClass} = opts ?? {};
+    const out: HTMLElement[] = [];
+    for (const [i, line] of splitLines(text).entries()) {
+        const el = document.createElement(lineTag);
+        if (lineClass) el.className = lineClass;
+        el.dataset.line = String(i + 1);
+        if (line === '') el.appendChild(document.createElement('br'));
+        else el.textContent = line;
+        out.push(el);
+    }
+    return out;
+}
+
+/** 行拆分：兼容 \r\n / \n / \r，保留末尾空行 */
+function splitLines(input: string): string[] {
+    const re = /\r\n|\n|\r/g;
+    const out: string[] = [];
+    let start = 0, m: RegExpExecArray | null;
+    while ((m = re.exec(input))) {
+        out.push(input.slice(start, m.index));
+        start = re.lastIndex;
+    }
+    out.push(input.slice(start));
+    return out;
 }
 
 function getHeaderRoot(o: object): Map<string, any> {
@@ -89,8 +153,6 @@ function thead(headerSet: Map<string, any>, t_path: string = '') {
             s1 = '[*]'
         }
 
-
-        console.log('-----------' + header[1].toString())
         const s = t_path + '.' + header[0] + s1;
 
         const th_center = document.createElement('div');
@@ -98,6 +160,7 @@ function thead(headerSet: Map<string, any>, t_path: string = '') {
 
         // th_center.classList.add(s)
         th_center.dataset.jspath = s
+        th_center.dataset.cur_path = t_path + '.' + header[0]
 
         th_center.textContent = header[0];
 
@@ -115,6 +178,8 @@ function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: strin
     // const button = '<div style="width: 20px;height: 20px"></div>'
 
     const tr = document.createElement('tr');
+    tr.dataset.path = path;
+    tr.dataset.t_path = t_path;
 
     if (hm.size === 0) {
         const s = genHtml(json, path, t_path);
@@ -129,18 +194,33 @@ function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: strin
         td.classList.add('tds_content')
 
 
-        td.innerHTML = s
+        // td.innerHTML = s
 
-        // const tddiv = document.createElement('div');
-        // // tddiv.classList.add(path)
-        //
-        // tddiv.dataset.jspath = path
-        //
-        // tddiv.classList.add('td_content')
+        const tddiv = document.createElement('div');
+        // tddiv.classList.add(path)
+
+        tddiv.dataset.path = path
+
+        tddiv.classList.add('td_content')
+        tddiv.innerHTML = s
+
+        if (json == null) {
+            tddiv.setAttribute('contenteditable', 'true');
+            // tddiv.setAttribute('-webkit-user-modify', 'read-write-plaintext-only')
+            tddiv.classList.add('td_content_leaf')
+        } else if (json instanceof Array) {
+            // console.log(1);
+        } else if (json instanceof Object) {
+            // console.log(1);
+        } else {
+            tddiv.setAttribute('contenteditable', 'true');
+            // tddiv.setAttribute('-webkit-user-modify', 'read-write-plaintext-only')
+            tddiv.classList.add('td_content_leaf')
+        }
         // tddiv.appendChild(td)
 
         // tableHeaderHtmlStr += td.outerHTML
-
+        td.appendChild(tddiv)
         tr.appendChild(td)
     } else {
         for (const header of hm) {
@@ -166,9 +246,8 @@ function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: strin
 
 
             const td = document.createElement('td');
-            td.className = x_path
+            // td.className = x_path
             // td.classList.add(cur_t_path)
-            td.dataset.jspath = cur_t_path
 
             const s3 = genHtml(josnElement, cur_path, cur_t_path);
 
@@ -176,12 +255,33 @@ function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: strin
             const tddiv = document.createElement('div');
             // tddiv.classList.add(cur_path)
             tddiv.dataset.jspath = cur_path
+
+            tddiv.dataset.cur_path = cur_path
+            tddiv.dataset.x_path = x_path
+            tddiv.dataset.path = cur_path
+
             tddiv.classList.add('td_content')
             tddiv.innerHTML = s3
+
+            if (josnElement == null) {
+                tddiv.setAttribute('contenteditable', 'true');
+                // td.setAttribute('-webkit-user-modify', 'read-write-plaintext-only')
+                tddiv.classList.add('td_content_leaf')
+            } else if (josnElement instanceof Array) {
+                // console.log(1);
+            } else if (josnElement instanceof Object) {
+                // console.log(1);
+            } else {
+                tddiv.setAttribute('contenteditable', 'true');
+                // td.setAttribute('-webkit-user-modify', 'read-write-plaintext-only')
+                tddiv.classList.add('td_content_leaf')
+            }
+
 
             td.appendChild(tddiv)
 
             td.classList.add('tds_content')
+            td.dataset.jspath = x_path
 
             tr.appendChild(td)
         }
@@ -193,7 +293,8 @@ function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: strin
     return tableHeaderHtmlStr
 
 }
-function wrapTable(theader: string, tbodyArray: Array<string>): string {
+
+function wrapTable(path: string, theader: string, tbodyArray: Array<string>): string {
     // 先生成 table
     let tableHtml = ''
 
@@ -221,10 +322,13 @@ function wrapTable(theader: string, tbodyArray: Array<string>): string {
     const right_add = document.createElement('div')
     right_add.textContent = '+'
     right_add.className = 'right_add'
+    right_add.dataset.cur_path = path
+
 
     const bottom_add = document.createElement('div')
     bottom_add.textContent = '+'
     bottom_add.className = 'bottom_add'
+    bottom_add.dataset.cur_path = path
 
     const cooner = document.createElement('div')
     cooner.textContent = '+'
@@ -233,6 +337,13 @@ function wrapTable(theader: string, tbodyArray: Array<string>): string {
     container.appendChild(right_add)
     container.appendChild(bottom_add)
     container.appendChild(cooner)
+
+
+    const everLayer = document.createElement('div')
+    everLayer.className = 'ever_layer'
+    everLayer.classList.add('overlay-container')
+    everLayer.id = 'overlay'
+    container.appendChild(everLayer)
 
     return container.outerHTML
 }

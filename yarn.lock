@@ -1473,6 +1473,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@faker-js/faker@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "@faker-js/faker@npm:10.0.0"
+  checksum: 10c0/7692f21cad661cd0cb150d72d4dff79322c892923c97a263c12ae74de45739306bea4e2630e8ac852dd4395ead2cb76be3715011395256c56e8a9b39acdcb97a
+  languageName: node
+  linkType: hard
+
 "@hapi/hoek@npm:^9.0.0":
   version: 9.3.0
   resolution: "@hapi/hoek@npm:9.3.0"
@@ -6192,6 +6199,7 @@ __metadata:
   dependencies:
     "@babel/core": "npm:^7.12.16"
     "@babel/eslint-parser": "npm:^7.12.16"
+    "@faker-js/faker": "npm:^10.0.0"
     "@types/jest": "npm:^30.0.0"
     "@types/node": "npm:^24.3.0"
     "@types/react": "npm:^19.1.12"

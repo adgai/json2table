@@ -1,0 +1,211 @@
+table, th, td {
+    border-collapse: collapse;
+    border-spacing: 0;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.table-container {
+    position: relative;
+    display: inline-block;
+    margin: 30px;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+td, th {
+    /*border: 1px solid #666;*/
+    /*padding: 8px 16px;*/
+    /*min-width: 80px;*/
+    /*height: 40px;*/
+}
+
+.overlay-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+td {
+    margin: 0;
+}
+
+.row-overlay, .col-overlay {
+    position: absolute;
+    /*background: rgba(0, 128, 255, 0.05);*/
+    /*border: 1px rgba(0, 128, 255, 0.3);*/
+
+/*//  border-right: 1px solid #dee0e3;*/
+    cursor: pointer;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #0af;
+    z-index: 99;
+
+    box-sizing: border-box;
+}
+
+.row-overlay:hover {
+    border-top: 1px solid #dee0e3;
+    border-left: 1px solid #dee0e3;
+}
+
+.col-overlay:hover {
+    border-top: 1px solid #dee0e3;
+    border-left: 1px solid #dee0e3;
+}
+
+.row-overlay-last:hover {
+    border-bottom: 1px solid #dee0e3;
+}
+
+.col-overlay-last:hover {
+    border-right: 1px solid #dee0e3;
+}
+
+.top_btn_a_btn {
+//background-color: #bbc0c0;
+}
+
+
+.left_btn_a_btn {
+//background-color: #2c3e50;
+}
+
+.top_btn {
+    position: absolute;
+//background-color: rgba(255, 0, 0, 0.24);
+    align-items: center;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+
+//opacity: 0;
+    pointer-events: auto; /* 确保能接收 hover/click */
+    z-index: 10;
+    height: 100%
+}
+
+.top_btn:hover {
+    cursor: pointer;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.left_btn {
+    position: absolute;
+//background-color: rgba(120, 234, 4, 0.18);
+    align-items: center;
+    text-align: center;
+    display: flex;
+    flex-direction: row;
+
+//opacity: 0;
+
+    width: 100%;
+    pointer-events: auto; /* 确保能接收 hover/click */
+    z-index: 10;
+
+}
+
+.left_btn:hover {
+    cursor: pointer;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.row-overlay:hover, .col-overlay:hover {
+    background: rgba(0, 128, 255, 0.15);
+}
+
+.left_btn_line {
+    width: 100%;
+    height: 2px;
+    position: relative;
+
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    flex-direction: row;
+}
+
+.top_btn_line {
+    height: 100%;
+    width: 2px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+
+.top_btn_line .inner-line {
+    width: 2px;
+//background-color: rgba(101, 9, 210, 0.5);
+    flex-grow: 1;
+    transition: background-color 0.2s;
+}
+
+/* 同时高亮右边的线条 */
+.top_btn_a_btn:hover + .top_btn_line .inner-line {
+    background-color: #00aaff;
+}
+
+.top_btn_a_btn:hover {
+    background-color: #00aaff;
+}
+
+.top_btn_line .inner-line:hover {
+    background-color: #00aaff;
+
+}
+
+.left_btn_line .inner-line {
+    height: 2px;
+//background-color: rgba(101, 9, 210, 0.5);
+    flex-grow: 1;
+    transition: background-color 0.2s;
+}
+
+/* 同时高亮右边的线条 */
+.left_btn_a_btn:hover + .left_btn_line .inner-line {
+    background-color: #00aaff;
+}
+
+.left_btn_a_btn:hover {
+    background-color: #00aaff;
+}
+
+.left_btn_line .inner-line:hover {
+    background-color: #00aaff;
+
+}
+
+.row-highlight td,
+.row-highlight th {
+    background-color: rgba(0, 170, 255, 0.12);
+}
+
+.col-highlight {
+    background-color: rgba(0, 170, 255, 0.12);
+}
+
+
+.menu{
+    width: 100px;
+    height: 30px;
+    padding: 8px 4px;
+    border: 1px solid rgb(0, 0, 0);
+    border-radius: 2px;
+    display: none;
+}
+

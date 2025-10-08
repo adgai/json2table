@@ -194,6 +194,7 @@ thead{
 .table-container {
     position: relative;
     display: inline-block; /* 表格多大容器就多大 */
+    margin: 10px;
 }
 
 .table-container table {
@@ -208,6 +209,14 @@ thead{
     width: 20px;
     background: lightblue;
     cursor: pointer;
+
+    opacity: 0;
+    /*pointer-events: none;*/
+    transition: opacity 0.2s;
+
+    display: flex;
+    align-items: center;   /* 垂直居中 */
+    justify-content: center; /* 水平居中 */
 }
 
 .bottom_add {
@@ -218,6 +227,25 @@ thead{
     height: 20px;
     background: lightgreen;
     cursor: pointer;
+
+    /* 默认隐藏 & 不可点 */
+    opacity: 0;
+    /*pointer-events: none;*/
+    transition: opacity 0.2s;
+}
+
+/* 鼠标移到父元素时显示并可点 */
+.bottom_add:hover {
+    opacity: 1;
+    pointer-events: auto;
+    cursor: row-resize;
+}
+
+/* 鼠标移到父元素时显示并可点 */
+.right_add:hover {
+    opacity: 1;
+    pointer-events: auto;
+    cursor: col-resize;
 }
 
 .cooner {
@@ -228,8 +256,13 @@ thead{
     height: 20px;
     background: orange;
     cursor: nwse-resize;
+    opacity: 0;
 }
 .td_content{
-    padding-bottom: 30px;
-    padding-right: 30px;
+    /*padding-bottom: 30px;*/
+    /*padding-right: 30px;*/
+}
+
+.th_center{
+    padding: 2px;
 }
