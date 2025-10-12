@@ -8,7 +8,7 @@
 //     }
 // });
 
-function buildOverlay(table: any, overlay: any): void {
+function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
     const add_point_h_w = 10
     const add_point_h_w_half = add_point_h_w / 2;
     const side_h_w = 10
@@ -29,11 +29,8 @@ function buildOverlay(table: any, overlay: any): void {
     // overlay.style.left = x + "px";
     // overlay.style.top = y + "px";
 
-    const offsetHeight = table.rows[0].offsetHeight;
-
-
     // 行左侧 overlay（包括 thead + tbody）
-    Array.from(table.rows).forEach((row: any, i: number) => {
+    Array.from(table.rows).forEach((row: HTMLTableRowElement, i: number) => {
 
         const rowHeight = row.getBoundingClientRect().height;  // 更精确
 
@@ -65,12 +62,12 @@ function buildOverlay(table: any, overlay: any): void {
 
         ro.dataset.row = ' + i+ ';
 
-        ro.onclick = (e) => {
-            // e.stopPropagation();
-            // currentTarget = i;
-            // currentType = "row";
-            // showMenu(e.pageX, e.pageY);
-        };
+        // ro.onclick = (e) => {
+        //     // e.stopPropagation();
+        //     // currentTarget = i;
+        //     // currentType = "row";
+        //     // showMenu(e.pageX, e.pageY);
+        // };
 
 
         overlay.appendChild(ro);
@@ -151,7 +148,7 @@ function buildOverlay(table: any, overlay: any): void {
     // 列上方 overlay（取第一行的 cells）
     const firstRow = table.rows[0].cells;
 
-    Array.from(firstRow).forEach((cell: any, j: number) => {
+    Array.from<HTMLTableCellElement>(firstRow).forEach((cell, j: number) => {
         const co = document.createElement("div");
         co.className = "col-overlay";
         co.style.left = cell.offsetLeft + "px";
@@ -161,8 +158,9 @@ function buildOverlay(table: any, overlay: any): void {
         // console.log(cell)
         const cell_tag_name = cell.tagName;
         if (cell_tag_name === 'TH') {
-            const querySelector = cell.querySelector('.th_center');
-            co.dataset.table_path = querySelector.dataset.cur_path;
+            const querySelector: HTMLDivElement | null = cell.querySelector('.th_center');
+
+            co.dataset.table_path = querySelector === null ? '' : querySelector.dataset.cur_path;
         } else if (cell_tag_name === 'TD') {
             co.dataset.table_path = cell.dataset.jspath
         }
@@ -199,8 +197,6 @@ function buildOverlay(table: any, overlay: any): void {
         //     alert("列操作菜单: 第 " + j + " 列（含表头）");
         // };
         overlay.appendChild(co);
-
-        const offsetWidth = firstRow[j].offsetWidth
 
         const top_btn = document.createElement('div');
         top_btn.className = "top_btn";
@@ -299,6 +295,7 @@ function buildOverlay(table: any, overlay: any): void {
 
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function wrapOffset(source: number, x: number, y: number, direction: string): number {
     // if (direction === "left") {
     //     return source + x

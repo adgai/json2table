@@ -20,6 +20,8 @@ export interface OnEditEndPayload {
     html: string;     // 当前 innerHTML
     text: string;     // 将 <br> 还原为 \n 的纯文本
     reason: EditEndReason;
+    beforeHtml: string;
+    beforeText: string;
 
 }
 

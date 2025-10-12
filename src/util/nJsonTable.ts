@@ -132,7 +132,7 @@ function getHeader(header: Set<string>, hm: Map<string, any>, json: object): Set
 
 }
 
-function thead(headerSet: Map<string, any>, t_path: string = '') {
+function thead(headerSet: Map<string, string>, t_path: string = '') {
 
     if (headerSet.size === 0) {
         return ''
@@ -157,11 +157,12 @@ function thead(headerSet: Map<string, any>, t_path: string = '') {
 
         const th_center = document.createElement('div');
         th_center.className = 'th_center'
+        th_center.contentEditable = 'true'
 
         // th_center.classList.add(s)
         th_center.dataset.jspath = s
         th_center.dataset.cur_path = t_path + '.' + header[0]
-
+        th_center.dataset.path = t_path + '.' + header[0]
         th_center.textContent = header[0];
 
         tableHeaderHtmlStr += '<th>' + th_left.outerHTML + th_center.outerHTML + th_right.outerHTML + '</th>'
@@ -171,7 +172,7 @@ function thead(headerSet: Map<string, any>, t_path: string = '') {
     return tableHeaderHtmlStr;
 }
 
-function tbody(hm: Map<string, any>, json: any, path: string = '', t_path: string) {
+function tbody(hm: Map<string, string>, json: any, path: string = '', t_path: string) {
 
     let tableHeaderHtmlStr: string = ''
 

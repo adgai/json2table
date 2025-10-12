@@ -18,7 +18,6 @@
               fill="currentColor" class="octo-body"></path>
         </svg>
       </a>
-
     </div>
 
     <div>
@@ -26,7 +25,12 @@
 
     </textarea>
     </div>
-    <div class="path_show_container">
+
+    <div>
+      <SimpleSwitch v-model="editSwitch"></SimpleSwitch>
+    </div>
+
+    <div v-if="!editSwitch" class="path_show_container">
       <div class="key-path path_show">
         <span class="path_show_desc">key path:</span>
         <span class="path_show_path">{{ jp }}</span>
@@ -43,6 +47,7 @@
 
 
     </div>
+
     <div>
       <div v-html="tableHtmlStr">
 
@@ -60,11 +65,13 @@ import {genHtml} from "@/util/nJsonTable";
 import {buildOverlay} from "@/util/overlay";
 import {onContentEditEnd, getTextFromCell} from "@/util/onContentEditEnd"
 
+import SimpleSwitch from './SimpleSwitch.vue'
 
 import {faker} from "@faker-js/faker"
 
 import type {BaseMockRules} from './types'
 
+let editSwitch = ref(false)
 
 const rules: BaseMockRules = {
   string: () => faker.lorem.word(),
@@ -73,11 +80,9 @@ const rules: BaseMockRules = {
 }
 
 import {useToast} from "@/util/useToast"
-// eslint-disable-next-line no-unused-vars
-import {OnEditEndPayload} from "@/util/types";
 
 const {show} = useToast()
-const {JSONPath} = require('jsonpath-plus');
+import {JSONPath} from 'jsonpath-plus';
 
 let json_o = ref(null)
 // let json_path = ref('')
@@ -177,7 +182,6 @@ watch(jsonStr, async (newQuestion) => {
 
 onMounted(() => {
 
-
   if (jsonStr.value === '') {
     return
   }
@@ -190,6 +194,7 @@ onMounted(() => {
         json
     )
   } catch (e) {
+    console.log(e)
     tableHtmlStr.value = jsonStr.value
   }
 
@@ -200,315 +205,408 @@ onMounted(() => {
 })
 onUpdated(() => {
 
-      buildOverlayLocal()
-
-      var comments = Array.from(document.getElementsByClassName('tds_content'));
-      var numComments = comments.length;
-
-
-      for (var i = 0; i < numComments; i++) {
-
-        comments[i].addEventListener('click', function (e) {
-          // console.log(1332313);
-
-          // 使用 e.stopPropagation() 来阻止事件冒泡
-          e.stopPropagation();
-
-          // 使用 `this` 获取被点击的元素
-          // console.log(this);
-
-          // 获取被点击元素的类名
-          // const classListElement1 = this.classList[0];
-          const classListElement1 = this.dataset.jspath;
-
-          jp_v.value = classListElement1;
-          show("提示：已复制 \n     " + classListElement1)
-          navigator.clipboard.writeText(classListElement1)
-
-          // 这里可以添加其他代码
-        }, false);
-
-
-        comments[i].onmouseover = function (e) {
-          window.event ? window.event.cancelBubble = true : e.stopPropagation();
-
-          var element = document.elementFromPoint(e.pageX, e.pageY);
-
-          if (!element) {
-            return;
-          }
-          const tagName = element.tagName;
-
-          // console.log(tagName)
-          if (tagName === 'TD') {
-            this.style.backgroundColor = "#8bc34a45"
-          }
-
-          if (element.classList.contains('td_content')) {
-            this.style.backgroundColor = "#8bc34a45"
-          }
-
-        }
-        comments[i].onmouseout = function (e) {
-          window.event ? window.event.cancelBubble = true : e.stopPropagation();
-          this.style.backgroundColor = "";
-        }
-
+      if (editSwitch.value) {
+        buildOverlayLocal()
       }
 
+      if (!editSwitch.value) {
 
-      var th_centers = document.getElementsByClassName('th_center');
-      const length = th_centers.length;
-      for (let i = 0; i < length; i++) {
-        th_centers[i].addEventListener('click', function (e) {
-          e.stopPropagation();
-          // const classs = this.classList.toString();
-          // const jpv = classs.split(' ')[1];
-          const jpv = this.dataset.jspath
-          jp.value = jpv
-          navigator.clipboard.writeText(jpv)
-          show("提示：已复制 \n     " + jpv)
+        var comments = Array.from(document.getElementsByClassName('tds_content'));
+        var numComments = comments.length;
+        for (var i = 0; i < numComments; i++) {
 
-          console.log(jp)
-          var j_ses = Array.from(document.getElementsByClassName('json-selected'));
-          j_ses.forEach(jS => {
-            // console.log('=================' + jS.classList);
-            jS.classList.remove('json-selected');
-            // console.log('=================' + jS.classList);
-          });
-
-
-          const classListElement = this.classList[1];
-          // console.log('222222222222' + this.classList);
-          var alls = document.getElementsByClassName(classListElement);
-          const length1 = alls.length;
-
-          for (let i = 0; i < length1; i++) {
-            alls[i].classList.add('json-selected')
-          }
-        })
-
-        // th_centers[i].onmouseover = function (e) {
-        //   window.event ? window.event.cancelBubble = true : e.stopPropagation();
-        //
-        //   var element = document.elementFromPoint(e.pageX, e.pageY);
-        //
-        //   const tagName = element.tagName;
-        //   // console.log(tagName)
-        //   if (tagName === 'TD') {
-        //     this.style.backgroundColor = "#8bc34a45"
-        //   }
-        //
-        // }
-        // th_centers[i].onmouseout = function (e) {
-        //   window.event ? window.event.cancelBubble = true : e.stopPropagation();
-        //   this.style.backgroundColor = "";
-        // }
-
-      }
-
-
-      var right_add_ = document.getElementsByClassName('right_add');
-      const r_l = right_add_.length;
-      for (let i = 0; i < r_l; i++) {
-        right_add_[i].addEventListener('click', function (e) {
-              e.stopPropagation();
-              // const classs = this.classList.toString();
-              // const jpv = classs.split(' ')[1];
-              const curPath = this.dataset.cur_path;
-
-              // 修改
-              JSONPath({
-                path: curPath,
-                json: toRaw(json_o.value),
-                // eslint-disable-next-line no-unused-vars
-                callback: (value, type, payload) => {
-
-                  const suggested = makeUniqueKey(value);
-                  const key = prompt('新字段名：', suggested) || suggested;
-
-                  if (Array.isArray(value)) {
-                    value.forEach(item => {
-                      item[key] = 123;
-                    })
-                    // eslint-disable-next-line no-empty
-                  } else if (value instanceof Object) {
-                    value[key] = 123;
-                  }
-
-                }
-              })
-
-              refresh_html.value = true;
-              // jsonStr.value = JSON.stringify(toRaw(json_o.value))
-              jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
-
+          comments[i].addEventListener('click', function (e) {
+            // console.log(1332313);
+            if (editSwitch.value) {
+              return
             }
-        )
-      }
-      var bottom_add_ = document.getElementsByClassName('bottom_add');
-      const b_l = bottom_add_.length;
-      for (let i = 0; i < b_l; i++) {
-        bottom_add_[i].addEventListener('click', function (e) {
-          e.stopPropagation();
+            // 使用 e.stopPropagation() 来阻止事件冒泡
+            e.stopPropagation();
 
-          const curPath = this.dataset.cur_path;
+            // 使用 `this` 获取被点击的元素
+            // console.log(this);
 
-          const evaluate = JSONPath({
-            path: curPath,
-            json: toRaw(json_o.value)
-          });
+            // 获取被点击元素的类名
+            // const classListElement1 = this.classList[0];
+            const classListElement1 = this.dataset.jspath;
 
-          console.log(JSON.stringify(evaluate[0]));
+            jp_v.value = classListElement1;
+            show("提示：已复制 \n     " + classListElement1)
+            navigator.clipboard.writeText(classListElement1)
 
-          // 修改
-          JSONPath({
-            path: curPath,
-            json: toRaw(json_o.value),
-            callback: (value, type, payload) => {
+            // 这里可以添加其他代码
+          }, false);
 
 
-              if (curPath === '$' && value instanceof Array) {
+          comments[i].onmouseover = function (e) {
+            if (editSwitch.value) {
+              return
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            window.event ? window.event.cancelBubble = true : e.stopPropagation();
 
-                value.push(value[0])
+            var element = document.elementFromPoint(e.pageX, e.pageY);
 
-              } else {
-                const source = payload.parent[payload.parentProperty];
-                const mock = mockJson(source[0], rules)
-                source.push(mock);
-                payload.parent[payload.parentProperty] = source// 直接改
+            if (!element) {
+              return;
+            }
+            const tagName = element.tagName;
 
-              }
+            // console.log(tagName)
+            if (tagName === 'TD') {
+              this.style.backgroundColor = "#8bc34a45"
+            }
 
+            if (element.classList.contains('td_content')) {
+              this.style.backgroundColor = "#8bc34a45"
+            }
+
+          }
+          comments[i].onmouseout = function (e) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            window.event ? window.event.cancelBubble = true : e.stopPropagation();
+            this.style.backgroundColor = "";
+          }
+
+        }
+
+        var th_centers = document.getElementsByClassName('th_center');
+        const length = th_centers.length;
+        for (let i = 0; i < length; i++) {
+          th_centers[i].addEventListener('click', function (e) {
+            if (editSwitch.value) {
+              return
+            }
+            e.stopPropagation();
+            // const classs = this.classList.toString();
+            // const jpv = classs.split(' ')[1];
+            const jpv = this.dataset.jspath
+            jp.value = jpv
+            navigator.clipboard.writeText(jpv)
+            show("提示：已复制 \n     " + jpv)
+
+            console.log(jp)
+            var j_ses = Array.from(document.getElementsByClassName('json-selected'));
+            j_ses.forEach(jS => {
+              // console.log('=================' + jS.classList);
+              jS.classList.remove('json-selected');
+              // console.log('=================' + jS.classList);
+            });
+
+
+            const classListElement = this.classList[1];
+            // console.log('222222222222' + this.classList);
+            var alls = document.getElementsByClassName(classListElement);
+            const length1 = alls.length;
+
+            for (let i = 0; i < length1; i++) {
+              alls[i].classList.add('json-selected')
             }
           })
+
+          // th_centers[i].onmouseover = function (e) {
+          //   window.event ? window.event.cancelBubble = true : e.stopPropagation();
+          //
+          //   var element = document.elementFromPoint(e.pageX, e.pageY);
+          //
+          //   const tagName = element.tagName;
+          //   // console.log(tagName)
+          //   if (tagName === 'TD') {
+          //     this.style.backgroundColor = "#8bc34a45"
+          //   }
+          //
+          // }
+          // th_centers[i].onmouseout = function (e) {
+          //   window.event ? window.event.cancelBubble = true : e.stopPropagation();
+          //   this.style.backgroundColor = "";
+          // }
+
+        }
+      }
+
+      if (editSwitch.value) {
+
+        var right_add_ = document.getElementsByClassName('right_add');
+        const r_l = right_add_.length;
+        for (let i = 0; i < r_l; i++) {
+          right_add_[i].addEventListener('click', function (e) {
+                if (!editSwitch.value) {
+                  return
+                }
+                e.stopPropagation();
+                // const classs = this.classList.toString();
+                // const jpv = classs.split(' ')[1];
+                const curPath = this.dataset.cur_path;
+
+                // 修改
+                JSONPath({
+                  path: curPath,
+                  json: toRaw(json_o.value),
+                  // eslint-disable-next-line no-unused-vars,@typescript-eslint/no-unused-vars
+                  callback: (value, type, payload) => {
+
+                    const suggested = makeUniqueKey(value);
+                    const key = prompt('新字段名：', suggested) || suggested;
+
+                    if (Array.isArray(value)) {
+                      value.forEach(item => {
+                        item[key] = 123;
+                      })
+                      // eslint-disable-next-line no-empty
+                    } else if (value instanceof Object) {
+                      value[key] = 123;
+                    }
+
+                  }
+                })
+
+                refresh_html.value = true;
+                // jsonStr.value = JSON.stringify(toRaw(json_o.value))
+                jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+
+              }
+          )
+        }
+        var bottom_add_ = document.getElementsByClassName('bottom_add');
+        const b_l = bottom_add_.length;
+        for (let i = 0; i < b_l; i++) {
+          bottom_add_[i].addEventListener('click', function (e) {
+            if (!editSwitch.value) {
+              return
+            }
+            e.stopPropagation();
+
+            const curPath = this.dataset.cur_path;
+
+            const evaluate = JSONPath({
+              path: curPath,
+              json: toRaw(json_o.value)
+            });
+
+            console.log(JSON.stringify(evaluate[0]));
+
+            // 修改
+            JSONPath({
+              path: curPath,
+              json: toRaw(json_o.value),
+              callback: (value, type, payload) => {
+
+
+                if (curPath === '$' && value instanceof Array) {
+
+                  value.push(value[0])
+
+                } else {
+                  const source = payload.parent[payload.parentProperty];
+                  const mock = mockJson(source[0], rules)
+                  source.push(mock);
+                  payload.parent[payload.parentProperty] = source// 直接改
+
+                }
+
+              }
+            })
+
+            refresh_html.value = true;
+            // jsonStr.value = JSON.stringify(toRaw(json_o.value))
+            jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+
+          })
+        }
+
+        batchAddEventListener('click', 'row-overlay', function (e) {
+          if (!editSwitch.value) {
+            return
+          }
+          e.stopPropagation();
+
+          const tablePath = this.dataset.table_path;
+          if (!tablePath || /^(null|undefined)$/i.test(tablePath)) return;
+
+          console.log(tablePath);
+
+          // 注意：这里用 reactive 的 json_o.value，别用 toRaw
+          JSONPath({
+            path: tablePath,
+            json: json_o.value,
+            callback: (value, type, payload) => {
+
+              // 命中根：要单独处理
+              if (tablePath === '$') {
+                if (Array.isArray(json_o.value)) {
+                  // 清空根数组（两种都行）
+                  json_o.value.length = 0;
+                  // 或者：json_o.value = []
+                } else if (json_o.value && typeof json_o.value === 'object') {
+                  // 清空根对象
+                  Object.keys(json_o.value).forEach(k => delete json_o.value[k]);
+                } else {
+                  // 其他类型，按需处理
+                  json_o.value = null as any;
+                }
+                return;
+              }
+
+              const parent = payload.parent;
+              const key = payload.parentProperty;
+
+              if (Array.isArray(parent)) {
+                // 删除当前命中的这个元素
+                parent.splice(Number(key), 1);
+              } else if (parent && typeof parent === 'object') {
+                // 删除当前命中的这个字段
+                delete parent[key];
+              }
+            }
+          });
 
           refresh_html.value = true;
           // jsonStr.value = JSON.stringify(toRaw(json_o.value))
           jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
 
         })
-      }
 
-      batchAddEventListener('click', 'row-overlay', function (e) {
-        e.stopPropagation();
+        batchAddEventListener('click', 'col-overlay', function (e) {
+          e.stopPropagation();
 
-        const tablePath = this.dataset.table_path;
-        if (!tablePath || /^(null|undefined)$/i.test(tablePath)) return;
+          const tablePath = this.dataset.table_path;
+          if (!tablePath || /^(null|undefined)$/i.test(tablePath)) return;
 
-        console.log(tablePath);
+          console.log(tablePath);
 
-        // 注意：这里用 reactive 的 json_o.value，别用 toRaw
-        JSONPath({
-          path: tablePath,
-          json: json_o.value,
-          callback: (value, type, payload) => {
+          // 注意：这里用 reactive 的 json_o.value，别用 toRaw
+          JSONPath({
+            path: tablePath,
+            json: json_o.value,
+            callback: (value, type, payload) => {
 
-            // 命中根：要单独处理
-            if (tablePath === '$') {
-              if (Array.isArray(json_o.value)) {
-                // 清空根数组（两种都行）
-                json_o.value.length = 0;
-                // 或者：json_o.value = []
-              } else if (json_o.value && typeof json_o.value === 'object') {
-                // 清空根对象
-                Object.keys(json_o.value).forEach(k => delete json_o.value[k]);
-              } else {
-                // 其他类型，按需处理
-                json_o.value = null as any;
+              const parent = payload.parent;
+              const key = payload.parentProperty;
+
+              if (Array.isArray(parent)) {
+                // 删除当前命中的这个元素
+                parent.splice(Number(key), 1);
+              } else if (parent && typeof parent === 'object') {
+                // 删除当前命中的这个字段
+                delete parent[key];
               }
-              return;
             }
+          });
 
-            const parent = payload.parent;
-            const key = payload.parentProperty;
+          refresh_html.value = true;
+          // jsonStr.value = JSON.stringify(toRaw(json_o.value))
+          jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
 
-            if (Array.isArray(parent)) {
-              // 删除当前命中的这个元素
-              parent.splice(Number(key), 1);
-            } else if (parent && typeof parent === 'object') {
-              // 删除当前命中的这个字段
-              delete parent[key];
-            }
-          }
-        });
-
-        refresh_html.value = true;
-        // jsonStr.value = JSON.stringify(toRaw(json_o.value))
-        jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
-
-      })
+        })
 
 
-      batchAddEventListener('click', 'col-overlay', function (e) {
-        e.stopPropagation();
+        const leafs = document.getElementsByClassName('td_content_leaf');
+        const leafs_length = leafs.length;
+        for (let i = 0; i < leafs_length; i++) {
+          const leaf = leafs[i];
+          onContentEditEnd(
+              leaf,
+              // eslint-disable-next-line no-unused-vars
+              payload1 => {
+                const textFromCell = getTextFromCell(payload1.el);
+                console.log(textFromCell)
+                // console.log(JSON.stringify(toRaw(payload)));
+                const tablePath = payload1.el.dataset.path;
 
-        const tablePath = this.dataset.table_path;
-        if (!tablePath || /^(null|undefined)$/i.test(tablePath)) return;
+                // 注意：这里用 reactive 的 json_o.value，别用 toRaw
+                JSONPath({
+                  path: tablePath,
+                  json: json_o.value,
+                  callback: (value, type, payload) => {
 
-        console.log(tablePath);
+                    const parent = payload.parent;
+                    const key = payload.parentProperty;
 
-        // 注意：这里用 reactive 的 json_o.value，别用 toRaw
-        JSONPath({
-          path: tablePath,
-          json: json_o.value,
-          callback: (value, type, payload) => {
+                    parent[key] = textFromCell
+                  }
+                });
 
-            const parent = payload.parent;
-            const key = payload.parentProperty;
+                refresh_html.value = false
+                jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
 
-            if (Array.isArray(parent)) {
-              // 删除当前命中的这个元素
-              parent.splice(Number(key), 1);
-            } else if (parent && typeof parent === 'object') {
-              // 删除当前命中的这个字段
-              delete parent[key];
-            }
-          }
-        });
+              }
+          )
+        }
 
-        refresh_html.value = true;
-        // jsonStr.value = JSON.stringify(toRaw(json_o.value))
-        jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+        const headers = document.getElementsByClassName('th_center');
 
-      })
+        const headers_length = headers.length;
+        for (let i = 0; i < headers_length; i++) {
+          const header = headers[i];
+          onContentEditEnd(
+              header as HTMLDivElement,
+              // eslint-disable-next-line no-unused-vars
+              payload1 => {
+                const afterText = getTextFromCell(payload1.el);
+                // console.log(afterText)
+                // console.log(JSON.stringify(toRaw(payload)));
+                let tablePath: string | undefined = payload1.el.dataset.path;
 
-
-      const leafs = document.getElementsByClassName('td_content_leaf');
-      const leafs_length = leafs.length;
-      for (let i = 0; i < leafs_length; i++) {
-        const leaf = leafs[i];
-        onContentEditEnd(
-            leaf,
-            // eslint-disable-next-line no-unused-vars
-            payload1 => {
-              const textFromCell = getTextFromCell(payload1.el);
-              console.log(textFromCell)
-              // console.log(JSON.stringify(toRaw(payload)));
-              const tablePath = payload1.el.dataset.path;
-
-              // 注意：这里用 reactive 的 json_o.value，别用 toRaw
-              JSONPath({
-                path: tablePath,
-                json: json_o.value,
-                callback: (value, type, payload) => {
-
-                  const parent = payload.parent;
-                  const key = payload.parentProperty;
-
-                  parent[key] = textFromCell
+                const beforeText = payload1.beforeText;
+                if (afterText === beforeText) {
+                  return
                 }
-              });
 
-              refresh_html.value = false
-              jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+                console.log(afterText)
+                console.log(beforeText)
 
-            })
+                // 注意：这里用 reactive 的 json_o.value，别用 toRaw
+
+                const cur_path = replaceAfterLastDot(tablePath === undefined ? '' : tablePath, beforeText);
+                JSONPath({
+                  path: cur_path,
+                  json: json_o.value,
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  callback: (value, type, payload) => {
+
+                    const parent = payload.parent;
+                    // console.log(payload1)
+
+                    if (Array.isArray(parent)) {
+                      parent.forEach(k => {
+                        const before_value = k[beforeText];
+                        k[afterText] = before_value;
+
+                        delete k[beforeText];
+                      });
+
+                    } else if (parent && typeof parent === 'object') {
+                      // 删除当前命中的这个字段
+                      const before_value = parent[beforeText];
+                      parent[afterText] = before_value;
+
+                      delete parent[beforeText];
+                    }
+
+                  }
+                });
+
+                refresh_html.value = false
+                jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+
+              }
+          )
+        }
+
 
       }
-
     }
 )
+
+/** 将最后一个点后的内容替换为 replacement。
+ * 例：foo.bar.baz -> foo.bar.NEW
+ */
+function replaceAfterLastDot(s: string, replacement: string): string {
+  const i = s.lastIndexOf('.');
+  if (i === -1) return s;          // 没有点，原样返回
+  if (i === s.length - 1) return s + replacement; // 末尾就是点
+  return s.slice(0, i + 1) + replacement;
+}
 
 /**
  * 把 JSON 字符串格式化为可读文本
@@ -553,18 +651,18 @@ function batchAddEventListener(event: string, className: string, listener): void
 }
 
 // eslint-disable-next-line no-unused-vars
-function removeAt(arr, idx) {
-  if (idx < 0) idx += arr.length; // 负下标支持
-  if (idx < 0 || idx >= arr.length) return arr.slice(); // 越界：返回拷贝或原数组
-  return [...arr.slice(0, idx), ...arr.slice(idx + 1)];
-}
-
-// eslint-disable-next-line no-unused-vars
-function getLastBracketContent(str) {
-  const re = /\[([^\]]+)\](?!.*\[)/; // 匹配最后一个 [...]
-  const m = str.match(re);
-  return m ? m[1] : null;
-}
+// function removeAt(arr, idx) {
+//   if (idx < 0) idx += arr.length; // 负下标支持
+//   if (idx < 0 || idx >= arr.length) return arr.slice(); // 越界：返回拷贝或原数组
+//   return [...arr.slice(0, idx), ...arr.slice(idx + 1)];
+// }
+//
+// // eslint-disable-next-line no-unused-vars
+// function getLastBracketContent(str) {
+//   const re = /\[([^\]]+)\](?!.*\[)/; // 匹配最后一个 [...]
+//   const m = str.match(re);
+//   return m ? m[1] : null;
+// }
 
 function buildOverlayLocal() {
   var ever_layer_ = document.getElementsByClassName('ever_layer');
@@ -590,7 +688,7 @@ function copyValue(jsonPath, json) {
 }
 
 // 递归 mock 函数
-function mockJson(value: any, rules: BaseMockRules): any {
+function mockJson(value: unknown, rules: BaseMockRules): any {
   if (Array.isArray(value)) {
     return value.map(item => mockJson(item, rules))
   } else if (typeof value === "object" && value !== null) {

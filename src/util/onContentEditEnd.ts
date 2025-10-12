@@ -1,13 +1,12 @@
 // onContentEditEnd.ts
-import {EditEndReason, OnContentEditEndOptions, OnEditEndPayload} from './types';
+import { EditEndReason, OnContentEditEndOptions, OnEditEndPayload } from './types';
 
 export type Unbind = () => void;
 
 /** 将 contenteditable 容器中的 <br> 还原为 \n，返回纯文本 */
 export function getTextFromCell(el: HTMLElement): string {
-    return el.innerText
+    return el.innerText;
 }
-
 
 /**
  * 只在“输入结束”时触发回调：
@@ -18,7 +17,7 @@ export function getTextFromCell(el: HTMLElement): string {
  * - （可选）回车立即触发
  */
 export function onContentEditEnd(
-    el: Element,
+    el: HTMLDivElement,
     onEnd: (payload: OnEditEndPayload) => void,
     opts: OnContentEditEndOptions = {}
 ): Unbind {
@@ -27,10 +26,14 @@ export function onContentEditEnd(
     (el as HTMLDivElement).spellcheck = false;
 
     const debounceMs = opts.debounceMs ?? 300;
-    const fireOnEnter = opts.fireOnEnter ?? false;
+    // const fireOnEnter = opts.fireOnEnter ?? false;
 
     let composing = false;
     let timer: number | null = null;
+
+    // —— 新增：before 快照 —— //
+    let beforeText = el.innerText;
+    let beforeHtml = el.innerHTML;
 
     const getText = (): string => {
         // 把 <br> 还原成 \n，其他节点取 textContent
@@ -43,8 +46,29 @@ export function onContentEditEnd(
         return t;
     };
 
+    const snapshotNow = (): void => {
+        beforeText = getText();
+        beforeHtml = (el as HTMLDivElement).innerHTML;
+    };
+
+    // 触发回调，并在触发后刷新 before，保证连续多次编辑也能拿到每一次的 before/after
     const fire = (reason: EditEndReason): void => {
-        onEnd({el: el as HTMLDivElement, html: el.innerHTML, text: getText(), reason});
+        const afterHtml = (el as HTMLDivElement).innerHTML;
+        const afterText = getText();
+
+        const payload: OnEditEndPayload = {
+            el: el as HTMLDivElement,
+            html: afterHtml,
+            text: afterText,
+            reason,
+            beforeHtml,
+            beforeText,
+        };
+
+        onEnd(payload);
+        // 刷新快照，作为下一次“编辑前”
+        beforeHtml = afterHtml;
+        beforeText = afterText;
     };
 
     const clear = (): void => {
@@ -63,6 +87,11 @@ export function onContentEditEnd(
     };
 
     // 事件处理器（保存引用便于解绑）
+    const handleFocusIn = (): void => {
+        // 聚焦时记录“编辑前”快照
+        snapshotNow();
+    };
+
     const handleCompositionStart = (): void => {
         composing = true;
         clear();
@@ -94,18 +123,19 @@ export function onContentEditEnd(
         fire('blur');
     };
 
-    const handleBeforeInput = (e: InputEvent): void => {
-        if (!fireOnEnter) return;
-        // 回车立即触发一次“输入结束”，不阻止默认编辑行为
-        // insertParagraph / insertLineBreak 均覆盖
-        if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
-            clear();
-            // 放到事件尾部，等浏览器把 <br>/换行插入完
-            setTimeout(() => fire('enter'), 0);
-        }
-    };
+    // const handleBeforeInput = (e: InputEvent): void => {
+    //   if (!fireOnEnter) return;
+    //   // 回车立即触发一次“输入结束”，不阻止默认编辑行为
+    //   // insertParagraph / insertLineBreak 均覆盖
+    //   if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
+    //     clear();
+    //     // 放到事件尾部，等浏览器把 <br>/换行插入完
+    //     setTimeout(() => fire('enter'), 0);
+    //   }
+    // };
 
     // 绑定
+    el.addEventListener('focusin', handleFocusIn);
     el.addEventListener('compositionstart', handleCompositionStart);
     el.addEventListener('compositionend', handleCompositionEnd);
     el.addEventListener('input', handleInput);
@@ -117,6 +147,7 @@ export function onContentEditEnd(
     // 返回解绑函数
     return () => {
         clear();
+        el.removeEventListener('focusin', handleFocusIn);
         el.removeEventListener('compositionstart', handleCompositionStart);
         el.removeEventListener('compositionend', handleCompositionEnd);
         el.removeEventListener('input', handleInput);
