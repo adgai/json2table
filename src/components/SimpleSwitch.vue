@@ -21,7 +21,7 @@ function setMode(v: boolean) {
         @click="setMode(false)"
         aria-pressed="!modelValue"
     >
-      查看模式
+      view mode
     </button>
 
     <!-- 中间：原有开关 -->
@@ -45,7 +45,7 @@ function setMode(v: boolean) {
         @click="setMode(true)"
         aria-pressed="modelValue"
     >
-      编辑模式
+      edit mode
     </button>
   </div>
 </template>
@@ -60,10 +60,12 @@ function setMode(v: boolean) {
 
 /* 左右文字标签 */
 .label {
+  font-size: 20px;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
   border: none;
   background: transparent;
   padding: 4px 8px;
-  color: #64748b; /* slate-500 */
+  color: #000000; /* slate-500 */
   cursor: pointer;
   border-radius: 8px;
   transition: background .15s, color .15s, font-weight .15s;

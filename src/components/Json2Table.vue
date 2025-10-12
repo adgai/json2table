@@ -1,7 +1,12 @@
 <template>
   <div>
     <div class="header">
-      <span style="background-color: aliceblue;font-size: 20px">click value to copy value json path, click header to copy all value json path</span>
+      <div>
+        <SimpleSwitch v-model="editSwitch"></SimpleSwitch>
+      </div>
+      <span v-if="!editSwitch" style="background-color: aliceblue;font-size: 20px">click value to copy value json path, click header to copy all value json path</span>
+
+      <span v-if="editSwitch" style="background-color: aliceblue;font-size: 20px">edit table equal edit json</span>
     </div>
 
     <div>
@@ -26,9 +31,7 @@
     </textarea>
     </div>
 
-    <div>
-      <SimpleSwitch v-model="editSwitch"></SimpleSwitch>
-    </div>
+
 
     <div v-if="!editSwitch" class="path_show_container">
       <div class="key-path path_show">

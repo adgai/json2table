@@ -5,11 +5,11 @@
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
-import HelloWorld from './components/HelloWorld.vue';
+import Json2Table from './components/Json2Table.vue';
 
 @Options({
   components: {
-    HelloWorld,
+    HelloWorld: Json2Table,
   },
 })
 export default class App extends Vue {}
