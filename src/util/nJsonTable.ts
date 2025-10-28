@@ -1,4 +1,7 @@
+import {describeObjectTypes} from "@/util/typeJudge";
+
 function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
+    const type = describeObjectTypes({'v': json})['v'];
 
     if (json == null) {
         return ''
@@ -18,7 +21,7 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
             const s1 = tbody(hm, jsonElement, path_i, t_path);
             bodyArray.push(s1)
         }
-        const s = wrapTable(path, headerStr, bodyArray);
+        const s = wrapTable(path, headerStr, bodyArray, true, type);
         return s
 
     } else if (json instanceof Object) {
@@ -33,22 +36,18 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
         const bodyStr = tbody(hm, json, path, t_path);
 
 
-        return wrapTable(path, headerStr, new Array<string>(bodyStr));
+        return wrapTable(path, headerStr, new Array<string>(bodyStr), false, type);
     } else {
-        //
-        // json.split('\n').map((line: string) => {
-        //
-        // })
-        //
-        // console.log(json.includes('\n'))
-        //
-        // return json.toString();
-        //
-
         const numeric = isNumeric(json);
         if (numeric) {
             return json.toString();
         }
+
+        const boolean = isBoolean(json);
+        if (boolean) {
+            return json.toString();
+        }
+
         if (!json.includes('\n')) {
             return json.toString();
         }
@@ -73,6 +72,42 @@ export function isNumeric(str: unknown): str is string {
     return Number.isFinite(n);
 }
 
+type IsBooleanOptions = {
+    acceptWrapper?: boolean;        // 兼容 new Boolean(...)
+    acceptStringBoolean?: boolean;  // 兼容 "true"/"false"
+    acceptNumeric?: boolean;        // 兼容 0/1
+};
+
+export function isBoolean(
+    value: unknown,
+    opts: IsBooleanOptions = {}
+): value is boolean {
+    const {
+        acceptWrapper = true,
+        acceptStringBoolean = false,
+        acceptNumeric = false,
+    } = opts;
+
+    // 原始 boolean
+    if (typeof value === 'boolean') return true;
+
+    // Boolean 包装对象
+    if (acceptWrapper && Object.prototype.toString.call(value) === '[object Boolean]') {
+        return true;
+    }
+
+    // 字符串 "true"/"false"
+    if (acceptStringBoolean && typeof value === 'string') {
+        return value === 'true' || value === 'false';
+    }
+
+    // 数字 0/1
+    if (acceptNumeric && typeof value === 'number') {
+        return value === 0 || value === 1;
+    }
+
+    return false;
+}
 
 /** 同上，但返回数组，便于你自行插入/排序/diff */
 export function buildEditableChildrenArray(
@@ -105,9 +140,9 @@ function splitLines(input: string): string[] {
     return out;
 }
 
-function getHeaderRoot(o: object): Map<string, any> {
+function getHeaderRoot(o: object): Map<string, string> {
     const header = new Set<string>();
-    const hm: Map<string, any> = new Map
+    const hm: Map<string, string> = new Map
 
     getHeader(header, hm, o);
 
@@ -123,8 +158,9 @@ function getHeader(header: Set<string>, hm: Map<string, any>, json: object): Set
         }
     } else if (json instanceof Object) {
         for (const [k, v] of Object.entries(json)) {
-            hm.set(k, v instanceof Array)
-            // console.log(hm)
+            const value = describeObjectTypes({'v': v});
+            hm.set(k, value['v'])
+            // console.log(value)
             header.add(k)
         }
     }
@@ -144,14 +180,17 @@ function thead(headerSet: Map<string, string>, t_path: string = '') {
     const th_left = document.createElement('div');
     th_left.className = 'th_left'
     // console.log(th_left.innerHTML)
-    const th_right = document.createElement('div');
-    th_right.className = 'th_right'
+
 
     for (const header of headerSet) {
         let s1 = ''
         if (header[1]) {
             s1 = '[*]'
         }
+
+        const th_right = document.createElement('div');
+        th_right.className = 'th_right'
+        th_right.dataset.type = header[1];
 
         const s = t_path + '.' + header[0] + s1;
 
@@ -295,14 +334,17 @@ function tbody(hm: Map<string, string>, json: any, path: string = '', t_path: st
 
 }
 
-function wrapTable(path: string, theader: string, tbodyArray: Array<string>): string {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function wrapTable(path: string, theader: string, tbodyArray: Array<string>, array: boolean, type: string): string {
     // 先生成 table
     let tableHtml = ''
 
+    // console.log(type)
+
     if (theader === '') {
-        tableHtml += '<table id="non_header_table" border="2">'
+        tableHtml += '<table id="non_header_table"  data-type= ' + String(type) + '>'
     } else {
-        tableHtml += '<table border="2">'
+        tableHtml += '<table border="2" title="11111111111111111111111111111111111111111111" data-type= ' + String(type) + '>'
     }
 
     tableHtml += theader
@@ -354,6 +396,19 @@ function wrapTable(path: string, theader: string, tbodyArray: Array<string>): st
 // );
 //
 // console.log(s)
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function htmlToEl(html: string): Element {
+    const tpl = document.createElement('div');
+    tpl.innerHTML = html.trim();
+    return <Element>tpl.firstElementChild;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function parseHTML(html: string) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.childNodes; // 或 doc.body.firstElementChild 等
+}
 
 export {genHtml}
 
