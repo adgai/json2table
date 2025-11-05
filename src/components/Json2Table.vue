@@ -32,7 +32,6 @@
     </div>
 
 
-
     <div v-if="!editSwitch" class="path_show_container">
       <div class="key-path path_show">
         <span class="path_show_desc">key path:</span>
@@ -73,6 +72,7 @@ import SimpleSwitch from './SimpleSwitch.vue'
 import {faker} from "@faker-js/faker"
 
 import type {BaseMockRules} from './types'
+import data from '../assets/data.json'
 
 let editSwitch = ref(false)
 
@@ -92,69 +92,7 @@ let json_o = ref(null)
 let jp = ref('')
 // let  a = '231'
 let jp_v = ref('')
-const jsonStr = ref('{\n' +
-    '   "results" : [\n' +
-    '      {\n' +
-    '         "address_components" : [\n' +
-    '            {\n' +
-    '               "long_name" : "1600",\n' +
-    '               "short_name" : "1600",\n' +
-    '               "types" : [ "street_number" ]\n' +
-    '            },\n' +
-    '            {\n' +
-    '               "long_name" : "Amphitheatre Pkwy",\n' +
-    '               "short_name" : "Amphitheatre Pkwy",\n' +
-    '               "types" : [ "route" ]\n' +
-    '            },\n' +
-    '            {\n' +
-    '               "long_name" : "Mountain View",\n' +
-    '               "short_name" : "Mountain View",\n' +
-    '               "types" : [ "locality", "political" ]\n' +
-    '            },\n' +
-    '            {\n' +
-    '               "long_name" : "Santa Clara",\n' +
-    '               "short_name" : "Santa Clara",\n' +
-    '               "types" : [ "administrative_area_level_2", "political" ]\n' +
-    '            },\n' +
-    '            {\n' +
-    '               "long_name" : "California",\n' +
-    '               "short_name" : "CA",\n' +
-    '               "types" : [ "administrative_area_level_1", "political" ]\n' +
-    '            },\n' +
-    '            {\n' +
-    '               "long_name" : "United States",\n' +
-    '               "short_name" : "US",\n' +
-    '               "types" : [ "country", "political" ]\n' +
-    '            },\n' +
-    '            {\n' +
-    '               "long_name" : "94043",\n' +
-    '               "short_name" : "94043",\n' +
-    '               "types" : [ "postal_code" ]\n' +
-    '            }\n' +
-    '         ],\n' +
-    '         "formatted_address" : "1600 Amphitheatre Pkwy, Mountain View, CA 94043, USA",\n' +
-    '         "geometry" : {\n' +
-    '            "location" : {\n' +
-    '               "lat" : 37.42291810,\n' +
-    '               "lng" : -122.08542120\n' +
-    '            },\n' +
-    '            "location_type" : "ROOFTOP",\n' +
-    '            "viewport" : {\n' +
-    '               "northeast" : {\n' +
-    '                  "lat" : 37.42426708029149,\n' +
-    '                  "lng" : -122.0840722197085\n' +
-    '               },\n' +
-    '               "southwest" : {\n' +
-    '                  "lat" : 37.42156911970850,\n' +
-    '                  "lng" : -122.0867701802915\n' +
-    '               }\n' +
-    '            }\n' +
-    '         },\n' +
-    '         "types" : [ "street_address" ]\n' +
-    '      }\n' +
-    '   ],\n' +
-    '   "status" : "OK"\n' +
-    '}')
+const jsonStr = ref(JSON.stringify(data))
 const tableHtmlStr = ref('')
 
 let refresh_html = ref(true)

@@ -10,9 +10,9 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
         const t_path = pt_path
         // gen theader
         const hm = getHeaderRoot(json);
-        const headerStr = thead(hm, t_path);
+        const headerStr = thead(hm, t_path + '[*]');
 
-        const bodyArray: string[] = []
+        const bodyArray: HTMLTableRowElement[] = []
 
         // gen multi tbody
         for (let i = 0; i < json.length; i++) {
@@ -21,8 +21,8 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
             const s1 = tbody(hm, jsonElement, path_i, t_path);
             bodyArray.push(s1)
         }
-        const s = wrapTable(path, headerStr, bodyArray, true, type);
-        return s
+        const s = wrapTable1(path, headerStr, bodyArray, true, type);
+        return s.outerHTML
 
     } else if (json instanceof Object) {
         const t_path = pt_path
@@ -36,7 +36,7 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
         const bodyStr = tbody(hm, json, path, t_path);
 
 
-        return wrapTable(path, headerStr, new Array<string>(bodyStr), false, type);
+        return wrapTable1(path, headerStr, new Array<HTMLTableRowElement>(bodyStr), false, type).outerHTML;
     } else {
         const numeric = isNumeric(json);
         if (numeric) {
@@ -168,25 +168,26 @@ function getHeader(header: Set<string>, hm: Map<string, any>, json: object): Set
 
 }
 
-function thead(headerSet: Map<string, string>, t_path: string = '') {
+function thead(headerSet: Map<string, string>, t_path: string = ''): HTMLTableSectionElement | null {
 
     if (headerSet.size === 0) {
-        return ''
+        return null
     }
+
     let tableHeaderHtmlStr: string = ''
     // add table header
     tableHeaderHtmlStr = tableHeaderHtmlStr + '<thead> <tr>'
 
-    const th_left = document.createElement('div');
-    th_left.className = 'th_left'
-    // console.log(th_left.innerHTML)
+    const the = document.createElement('thead');
+    const tr = document.createElement('tr');
+    the.appendChild(tr);
 
 
     for (const header of headerSet) {
-        let s1 = ''
-        if (header[1]) {
-            s1 = '[*]'
-        }
+        const s1 = ''
+        // if (header[1]) {
+        //     s1 = '[*]'
+        // }
 
         const th_right = document.createElement('div');
         th_right.className = 'th_right'
@@ -204,16 +205,35 @@ function thead(headerSet: Map<string, string>, t_path: string = '') {
         th_center.dataset.path = t_path + '.' + header[0]
         th_center.textContent = header[0];
 
+        const th_left = document.createElement('div');
+        th_left.className = 'th_left'
+
         tableHeaderHtmlStr += '<th>' + th_left.outerHTML + th_center.outerHTML + th_right.outerHTML + '</th>'
+
+        const th = document.createElement('th');
+        th.appendChild(th_left);
+        th.appendChild(th_center);
+        th.appendChild(th_right);
+
+        tr.appendChild(th);
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     tableHeaderHtmlStr = tableHeaderHtmlStr + '</tr> </thead> '
 
-    return tableHeaderHtmlStr;
+    // console.log(the.outerHTML)
+    // console.log(tableHeaderHtmlStr)
+    //
+    //
+    // console.log(the.outerHTML.trim() === tableHeaderHtmlStr.trim())
+
+    return the;
+
+
 }
 
-function tbody(hm: Map<string, string>, json: any, path: string = '', t_path: string) {
+function tbody(hm: Map<string, string>, json: any, path: string = '', t_path: string): HTMLTableRowElement {
 
-    let tableHeaderHtmlStr: string = ''
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
     // const button = '<div style="width: 20px;height: 20px"></div>'
 
@@ -329,38 +349,113 @@ function tbody(hm: Map<string, string>, json: any, path: string = '', t_path: st
     }
 
 
-    tableHeaderHtmlStr += tr.outerHTML
-    return tableHeaderHtmlStr
+    return tr
 
 }
 
+
+function wrapTable1(
+    path: string,
+    theader: HTMLTableSectionElement | null,
+    tbodyArray: HTMLTableRowElement[],
+    array: boolean,
+    type: string
+): HTMLElement {
+    // ====== 创建表格 ======
+    const table = document.createElement('table');
+    table.dataset.type = String(type);
+
+    if (theader === null) {
+        table.id = 'non_header_table';
+    } else {
+        table.setAttribute('border', '2');
+        table.appendChild(theader);
+    }
+
+    // ====== 创建 tbody ======
+    const tbody = document.createElement('tbody');
+    for (const row of tbodyArray) {
+        tbody.appendChild(row);
+    }
+    table.appendChild(tbody);
+
+    // ====== 创建容器 ======
+    const container = document.createElement('div');
+    container.className = 'table-container';
+    container.appendChild(table);
+
+    // ====== 右侧加号 ======
+    const rightAdd = document.createElement('div');
+    rightAdd.textContent = '+';
+    rightAdd.className = 'right_add';
+    rightAdd.dataset.cur_path = path;
+    container.appendChild(rightAdd);
+
+    // ====== 底部加号 ======
+    const bottomAdd = document.createElement('div');
+    bottomAdd.textContent = '+';
+    bottomAdd.className = 'bottom_add';
+    bottomAdd.dataset.cur_path = path;
+    container.appendChild(bottomAdd);
+
+    // ====== 右下角加号 ======
+    const cooner = document.createElement('div');
+    cooner.textContent = '+';
+    cooner.className = 'cooner';
+    container.appendChild(cooner);
+
+    // ====== 悬浮层 overlay ======
+    const overlay = document.createElement('div');
+    overlay.className = 'ever_layer overlay-container';
+    overlay.id = `overlay_${Date.now()}`; // 避免重复 ID
+    container.appendChild(overlay);
+
+    // ====== 返回 DOM 元素 ======
+    return container;
+}
+
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function wrapTable(path: string, theader: string, tbodyArray: Array<string>, array: boolean, type: string): string {
+function wrapTable(path: string, theader: null | HTMLTableSectionElement, tbodyArray: Array<HTMLTableRowElement>, array: boolean, type: string): string {
     // 先生成 table
     let tableHtml = ''
 
     // console.log(type)
 
-    if (theader === '') {
+    const table = document.createElement('table');
+    table.dataset.type = String(type)
+    // table.style.border = '2px';
+
+    if (theader === null) {
         tableHtml += '<table id="non_header_table"  data-type= ' + String(type) + '>'
+        table.id = 'non_header_table'
+
     } else {
         tableHtml += '<table border="2" title="11111111111111111111111111111111111111111111" data-type= ' + String(type) + '>'
+        table.appendChild(theader)
     }
+
 
     tableHtml += theader
     tableHtml += '<tbody>'
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody)
 
-    for (const tbody of tbodyArray) {
-        tableHtml += tbody
+    for (const tbodya of tbodyArray) {
+        tableHtml += tbodya.outerHTML
+
+        tbody.appendChild(tbodya)
     }
 
     tableHtml += '</tbody>'
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     tableHtml += '</table>'
 
     // 用 DOM 拼容器
     const container = document.createElement('div')
     container.className = 'table-container'
-    container.innerHTML = tableHtml
+    // container.innerHTML = tableHtml
+    container.appendChild(table)
 
     const right_add = document.createElement('div')
     right_add.textContent = '+'
