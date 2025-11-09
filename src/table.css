@@ -132,7 +132,7 @@ thead{
     width: 300px;
     height: 50px;
     border-radius: 10px;
-    border: 2px black solid   ;
+    border: 1px black solid   ;
     text-align: center;
     align-items: center;
 }
@@ -265,4 +265,19 @@ thead{
 
 .th_center{
     padding: 2px;
+}
+
+/* 仅 table 需要 border-collapse */
+.table-container table,
+#non_header_table {
+    border-collapse: collapse;
+    border: 1px solid #666;   /* 外框 */
+}
+
+.table-container table td,
+.table-container table th,
+#non_header_table td,
+#non_header_table th {
+    border: 1px solid #666;   /* 内部网格线 */
+    padding: 8px 12px;
 }
