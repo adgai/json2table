@@ -7,7 +7,7 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
         return ''
     } else if (json instanceof Array) {
 
-        const t_path = pt_path
+        const t_path = pt_path.slice()
         // gen theader
         const hm = getHeaderRoot(json);
         const headerStr = thead(hm, t_path + '[*]');
@@ -18,7 +18,7 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
         for (let i = 0; i < json.length; i++) {
             const jsonElement = json[i];
             const path_i = path + '[' + i + ']';
-            const s1 = tbody(hm, jsonElement, path_i, t_path);
+            const s1 = tbody(hm, jsonElement, path_i, t_path+ '[*]');
             bodyArray.push(s1)
         }
         const s = wrapTable1(path, headerStr, bodyArray, true, type);
@@ -290,12 +290,12 @@ function tbody(hm: Map<string, string>, json: any, path: string = '', t_path: st
 
             // console.log(cur_path)
             // console.log(cur_t_path)
-            if (header[1]) {
-                // cur_path +='[*]'
-                cur_t_path += '.' + header[0] + '[*]'
-            } else {
+            // if (header[1]) {
+            //     // cur_path +='[*]'
+            //     cur_t_path += '.' + header[0] + '[*]'
+            // } else {
                 cur_t_path += '.' + header[0]
-            }
+            // }
 
             let x_path = ''
             if (josnElement instanceof Array) {
