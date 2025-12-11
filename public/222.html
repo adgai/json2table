@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8" />
+    <title>虚拟光标 + textarea 输入示例</title>
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif; }
+        .table-wrap { position: relative; display: inline-block; margin: 24px; }
+        table { border-collapse: collapse; }
+        td, th {
+            border: 1px solid #ccc; padding: 8px 12px; min-width: 120px; line-height: 22px;
+            white-space: pre; /* 允许换行请改为 pre-wrap，并配合 mirror-div 精准定位 */
+        }
+        /* 虚拟光标 */
+        .virtual-caret {
+            position: absolute;
+            width: 1px;
+            background: #1677ff;
+            animation: caret-blink 1s steps(1) infinite;
+            pointer-events: none;
+        }
+        @keyframes caret-blink { 50% { opacity: 0; } }
+
+        /* 输入用的迷你 textarea（不可见但可聚焦、收输入） */
+        .input-proxy {
+            position: absolute;
+            width: 1px;
+            height: 1.2em; /* 近似行高 */
+            opacity: 0; /* 完全透明 */
+            background: transparent;
+            color: transparent; /* 隐藏实际 caret */
+            caret-color: transparent;
+            border: none;
+            outline: none;
+            resize: none;
+            overflow: hidden;
+            white-space: pre;
+        }
+
+        .hint { color:#666; margin: 0 24px; }
+    </style>
+</head>
+<body>
+<p class="hint">点击任意单元格开始编辑。方向键移动光标，Enter 换行，Esc 退出编辑。</p>
+<div class="table-wrap" id="wrap">
+    <table id="tbl">
+        <thead>
+        <tr><th>姓名</th><th>城市</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+        <tr><td>Alice</td><td>Shanghai</td><td>喜欢美食</td></tr>
+        <tr><td>Bob</td><td>Tokyo</td><td>跑步 & 摄影</td></tr>
+        <tr><td>Carol</td><td>Beijing</td><td>正在学习 TypeScript</td></tr>
+        </tbody>
+    </table>
+    <!-- 虚拟光标 + 输入代理（只创建一次，循环复用） -->
+    <div id="caret" class="virtual-caret" style="display:none;height:22px;"></div>
+    <textarea id="proxy" class="input-proxy" spellcheck="false"></textarea>
+</div>
+
+<script>
+    (function(){
+        const wrap = document.getElementById('wrap');
+        const table = document.getElementById('tbl');
+        const caret = document.getElementById('caret');
+        const proxy = document.getElementById('proxy');
+
+        let editingCell = null;    // 当前编辑的 td
+        let caretIndex = 0;        // 光标在 cell 文本中的索引
+        let composing = false;     // 是否处于 IME 组合中（中文等）
+
+        // 工具：测量某个索引在 cell 内的像素位置（简化：nowrap 单行）
+        function measureCaretPos(cell, index){
+            // 利用隐藏的镜像 span 来测量（简化：单行、不考虑混排）
+            let mirror = cell.querySelector('.__mirror');
+            if(!mirror){
+                mirror = document.createElement('span');
+                mirror.className = '__mirror';
+                mirror.style.visibility = 'hidden';
+                mirror.style.whiteSpace = 'pre';
+                mirror.style.position = 'absolute';
+                mirror.style.left = '-99999px';
+                cell.appendChild(mirror);
+            }
+            const text = cell.textContent ?? '';
+            const before = text.slice(0, Math.max(0, Math.min(index, text.length)));
+            mirror.textContent = before.replace(/\n/g, '\n'); // 若要多行精准，需改成多行布局测量
+            // 匹配字体样式
+            const cs = getComputedStyle(cell);
+            mirror.style.font = cs.font;
+            mirror.style.lineHeight = cs.lineHeight;
+            mirror.style.letterSpacing = cs.letterSpacing;
+            mirror.style.padding = cs.padding;
+            mirror.style.border = '0';
+
+            // 计算 cell 起点
+            const rectCell = cell.getBoundingClientRect();
+            // 在单行 nowrap 假设下，offsetLeft ~ 文本宽度
+            const rectMirror = mirror.getBoundingClientRect();
+            const x = rectCell.left + (rectMirror.width || 0);
+            // 简化垂直居中为 cell 顶部 + 内边距
+            const y = rectCell.top + parseFloat(cs.paddingTop || '0');
+
+            const height = parseFloat(cs.lineHeight) || 22;
+            return { x, y, height };
+        }
+
+        function placeCaretAndProxy(cell, index){
+            const { x, y, height } = measureCaretPos(cell, index);
+            const pageX = x + window.scrollX;
+            const pageY = y + window.scrollY;
+
+            caret.style.left = pageX + 'px';
+            caret.style.top = pageY + 'px';
+            caret.style.height = height + 'px';
+            caret.style.display = 'block';
+
+            proxy.style.left = pageX + 'px';
+            proxy.style.top = pageY + 'px';
+            proxy.style.height = height + 'px';
+            proxy.value = ''; // 输入代理每次清空，按“字符流”工作
+            proxy.focus({ preventScroll:true });
+        }
+
+        function beginEdit(cell, clickToEnd=true){
+            if(editingCell === cell) return;
+            commitAndEnd(); // 若有未提交，先提交
+
+            editingCell = cell;
+            const text = cell.textContent ?? '';
+            caretIndex = clickToEnd ? text.length : 0; // 简化：默认放到末尾，可扩展为点击定位
+            placeCaretAndProxy(cell, caretIndex);
+        }
+
+        function commit(){
+            if(!editingCell) return;
+            // 此处我们只改当前 cell 的 textContent（不整体重绘表格）
+            // 如果你有外部 JSON 数据模型，这里同步更新你的模型即可
+        }
+
+        function endEdit(){
+            caret.style.display = 'none';
+            proxy.blur();
+            editingCell = null;
+        }
+
+        function commitAndEnd(){
+            commit();
+            endEdit();
+        }
+
+        // 文本替换工具
+        function insertTextAt(cell, index, inserted){
+            const old = cell.textContent ?? '';
+            const i = Math.max(0, Math.min(index, old.length));
+            const next = old.slice(0,i) + inserted + old.slice(i);
+            cell.textContent = next;
+            return i + inserted.length;
+        }
+        function deleteAt(cell, index){ // Backspace 删除 index-1
+            const old = cell.textContent ?? '';
+            if(index <= 0) return 0;
+            const next = old.slice(0, index-1) + old.slice(index);
+            cell.textContent = next;
+            return index-1;
+        }
+        function deleteForwardAt(cell, index){ // Delete 删除 index
+            const old = cell.textContent ?? '';
+            if(index >= old.length) return old.length;
+            const next = old.slice(0, index) + old.slice(index+1);
+            cell.textContent = next;
+            return index;
+        }
+
+        // 点击进入编辑
+        table.addEventListener('click', (e)=>{
+            const td = e.target.closest('td,th');
+            if(td && table.contains(td)){
+                // 示例：点击任何单元格，光标放末尾（可扩展为点击定位）
+                beginEdit(td, /*clickToEnd*/ true);
+            }
+        });
+
+        // 代理输入（逐字符注入）
+        proxy.addEventListener('input', ()=>{
+            if(!editingCell || composing) return;
+            const s = proxy.value;
+            if(!s) return;
+            caretIndex = insertTextAt(editingCell, caretIndex, s);
+            proxy.value = '';
+            placeCaretAndProxy(editingCell, caretIndex);
+        });
+
+        // 组合输入（中文/日文等 IME）
+        proxy.addEventListener('compositionstart', ()=>{ composing = true; });
+        proxy.addEventListener('compositionend', (e)=>{
+            composing = false;
+            if(!editingCell) return;
+            const s = e.data || '';
+            if(s){
+                caretIndex = insertTextAt(editingCell, caretIndex, s);
+                placeCaretAndProxy(editingCell, caretIndex);
+            }
+            proxy.value = '';
+        });
+
+        // 键盘控制
+        proxy.addEventListener('keydown', (e)=>{
+            if(!editingCell || composing) return;
+
+            const text = editingCell.textContent ?? '';
+
+            switch(e.key){
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    caretIndex = Math.max(0, caretIndex-1);
+                    placeCaretAndProxy(editingCell, caretIndex);
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    caretIndex = Math.min(text.length, caretIndex+1);
+                    placeCaretAndProxy(editingCell, caretIndex);
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    caretIndex = 0;
+                    placeCaretAndProxy(editingCell, caretIndex);
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    caretIndex = text.length;
+                    placeCaretAndProxy(editingCell, caretIndex);
+                    break;
+                case 'Backspace':
+                    e.preventDefault();
+                    caretIndex = deleteAt(editingCell, caretIndex);
+                    placeCaretAndProxy(editingCell, caretIndex);
+                    break;
+                case 'Delete':
+                    e.preventDefault();
+                    caretIndex = deleteForwardAt(editingCell, caretIndex);
+                    placeCaretAndProxy(editingCell, caretIndex);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    caretIndex = insertTextAt(editingCell, caretIndex, '\n');
+                    placeCaretAndProxy(editingCell, caretIndex);
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    commitAndEnd();
+                    break;
+                default:
+                    // 其它可输入字符走 input 事件
+                    break;
+            }
+        });
+
+        // 失焦提交
+        document.addEventListener('mousedown', (e)=>{
+            if(!editingCell) return;
+            const inWrap = wrap.contains(e.target);
+            const onProxy = e.target === proxy;
+            if(!inWrap || (!onProxy && !e.target.closest('td,th'))){
+                commitAndEnd();
+            }
+        });
+
+        // 滚动/窗口变化时，重新摆放光标 & 代理
+        window.addEventListener('scroll', ()=>{ if(editingCell) placeCaretAndProxy(editingCell, caretIndex); }, {passive:true});
+        window.addEventListener('resize', ()=>{ if(editingCell) placeCaretAndProxy(editingCell, caretIndex); });
+
+    })();
+</script>
+</body>
+</html>

@@ -1,12 +1,26 @@
 <template>
   <div>
     <div class="header">
-      <div>
-        <SimpleSwitch v-model="editSwitch"></SimpleSwitch>
+      <div class="header-controls">
+        <div class="mode_toggle">
+          <SimpleSwitch v-model="editSwitch"></SimpleSwitch>
+        </div>
+        <div class="theme_picker">
+          <label for="theme-select">主题：</label>
+          <select id="theme-select" v-model="themeName">
+            <option v-for="opt in themeOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+        </div>
       </div>
-      <span v-if="!editSwitch" style="background-color: aliceblue;font-size: 20px">click value to copy value json path, click header to copy all value json path</span>
+      <div class="header-hint" v-if="!editSwitch">
+        click value to copy value json path, click header to copy all value json path
+      </div>
 
-      <span v-if="editSwitch" style="background-color: aliceblue;font-size: 20px">edit table equal edit json</span>
+      <div class="header-hint" v-if="editSwitch">
+        edit table equal edit json
+      </div>
     </div>
 
     <div>
@@ -26,7 +40,7 @@
     </div>
 
     <div>
-    <textarea class="json_input" v-model="jsonStr">
+    <textarea class="json_input" v-model="jsonStr" @blur="formatJsonStr">
 
     </textarea>
     </div>
@@ -73,6 +87,7 @@ import {faker} from "@faker-js/faker"
 
 import type {BaseMockRules} from './types'
 import data from '../assets/data.json'
+import {getThemeClass, getThemeConfig, themeOptions} from "@/util/themeConfig"
 
 let editSwitch = ref(false)
 
@@ -94,6 +109,7 @@ let jp = ref('')
 let jp_v = ref('')
 const jsonStr = ref(JSON.stringify(data))
 const tableHtmlStr = ref('')
+const themeName = ref('neutral')
 
 let refresh_html = ref(true)
 
@@ -121,11 +137,14 @@ watch(jsonStr, async (newQuestion) => {
     },
 )
 
+watch(themeName, (t) => applyTheme(t))
+
 onMounted(() => {
 
   if (jsonStr.value === '') {
     return
   }
+  formatJsonStr()
   try {
     let json = JSON.parse(jsonStr.value);
 
@@ -142,9 +161,16 @@ onMounted(() => {
   buildOverlayLocal();
   window.addEventListener('resize', buildOverlayLocal)
 
+  setAddButtonsVisible(editSwitch.value)
+  setEditableVisible(editSwitch.value)
+  applyTheme(themeName.value)
+  formatJsonStr()
 
 })
 onUpdated(() => {
+
+      setAddButtonsVisible(editSwitch.value)
+      setEditableVisible(editSwitch.value)
 
       if (editSwitch.value) {
         buildOverlayLocal()
@@ -156,7 +182,7 @@ onUpdated(() => {
         var numComments = comments.length;
         for (var i = 0; i < numComments; i++) {
 
-          comments[i].addEventListener('click', function (e) {
+          bindOnce(comments[i], 'click', () => function (e) {
             // console.log(1332313);
             if (editSwitch.value) {
               return
@@ -176,7 +202,7 @@ onUpdated(() => {
             navigator.clipboard.writeText(classListElement1)
 
             // 这里可以添加其他代码
-          }, false);
+          }, 'tds_content_click');
 
 
           comments[i].onmouseover = function (e) {
@@ -214,7 +240,7 @@ onUpdated(() => {
         var th_centers = document.getElementsByClassName('th_center');
         const length = th_centers.length;
         for (let i = 0; i < length; i++) {
-          th_centers[i].addEventListener('click', function (e) {
+          bindOnce(th_centers[i], 'click', () => function (e) {
             if (editSwitch.value) {
               return
             }
@@ -243,7 +269,7 @@ onUpdated(() => {
             for (let i = 0; i < length1; i++) {
               alls[i].classList.add('json-selected')
             }
-          })
+          }, 'th_center_click')
 
           // th_centers[i].onmouseover = function (e) {
           //   window.event ? window.event.cancelBubble = true : e.stopPropagation();
@@ -270,7 +296,7 @@ onUpdated(() => {
         var right_add_ = document.getElementsByClassName('right_add');
         const r_l = right_add_.length;
         for (let i = 0; i < r_l; i++) {
-          right_add_[i].addEventListener('click', function (e) {
+          bindOnce(right_add_[i], 'click', () => function (e) {
                 if (!editSwitch.value) {
                   return
                 }
@@ -306,12 +332,12 @@ onUpdated(() => {
                 jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
 
               }
-          )
+          , 'right_add_click')
         }
         var bottom_add_ = document.getElementsByClassName('bottom_add');
         const b_l = bottom_add_.length;
         for (let i = 0; i < b_l; i++) {
-          bottom_add_[i].addEventListener('click', function (e) {
+          bindOnce(bottom_add_[i], 'click', () => function (e) {
             if (!editSwitch.value) {
               return
             }
@@ -352,7 +378,7 @@ onUpdated(() => {
             // jsonStr.value = JSON.stringify(toRaw(json_o.value))
             jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
 
-          })
+          }, 'bottom_add_click')
         }
 
         batchAddEventListener('click', 'row-overlay', function (e) {
@@ -444,9 +470,11 @@ onUpdated(() => {
         const leafs = document.getElementsByClassName('td_content_leaf');
         const leafs_length = leafs.length;
         for (let i = 0; i < leafs_length; i++) {
-          const leaf = leafs[i];
-          onContentEditEnd(
+          const leaf = leafs[i] as HTMLDivElement;
+          const pathKey = leaf.dataset.path ?? `leaf_${i}`;
+          bindEditEndOnce(
               leaf,
+              pathKey,
               // eslint-disable-next-line no-unused-vars
               payload1 => {
                 const textFromCell = getTextFromCell(payload1.el);
@@ -478,9 +506,11 @@ onUpdated(() => {
 
         const headers_length = headers.length;
         for (let i = 0; i < headers_length; i++) {
-          const header = headers[i];
-          onContentEditEnd(
-              header as HTMLDivElement,
+          const header = headers[i] as HTMLDivElement;
+          const headerPath = header.dataset.path ?? `header_${i}`;
+          bindEditEndOnce(
+              header,
+              headerPath,
               // eslint-disable-next-line no-unused-vars
               payload1 => {
                 const afterText = getTextFromCell(payload1.el);
@@ -581,14 +611,87 @@ function makeUniqueKey(obj: Record<string, any>, base = 'field') {
   return key;
 }
 
+// Avoid duplicate bindings on each onUpdated; one element/one handler
+function bindOnce(
+    el: Element,
+    event: string,
+    handlerFactory: () => (ev: Event) => void,
+    key?: string
+): void {
+  const flag = `__bound_${key ?? event}`;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyEl = el as any;
+  if (anyEl[flag]) return;
+  const handler = handlerFactory();
+  el.addEventListener(event, handler);
+  anyEl[flag] = true;
+}
+
+// Avoid re-binding contenteditable listeners repeatedly
+function bindEditEndOnce(
+    el: HTMLDivElement,
+    key: string,
+    onEnd: Parameters<typeof onContentEditEnd>[1]
+): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyEl = el as any;
+  const flag = `__edit_bound_${key}`;
+  if (anyEl[flag]) return;
+  anyEl[flag] = true;
+  onContentEditEnd(el, onEnd);
+}
+
 
 function batchAddEventListener(event: string, className: string, listener): void {
   var bottom_add_ = document.getElementsByClassName(className);
   const b_l = bottom_add_.length;
   for (let i = 0; i < b_l; i++) {
-    bottom_add_[i].addEventListener(event, listener);
+    bindOnce(bottom_add_[i], event, () => listener, `${className}_${event}`);
   }
 
+}
+
+function setAddButtonsVisible(visible: boolean): void {
+  const display = visible ? '' : 'none';
+  ['right_add', 'bottom_add', 'cooner', 'ever_layer'].forEach(cls => {
+    Array.from(document.getElementsByClassName(cls)).forEach(el => {
+      (el as HTMLElement).style.display = display;
+    });
+  });
+}
+
+// 控制 contenteditable，非编辑模式禁用
+function setEditableVisible(enabled: boolean): void {
+  toggleEditableByClass('td_content_leaf', enabled);
+  toggleEditableByClass('th_center', enabled);
+}
+
+function toggleEditableByClass(cls: string, enabled: boolean): void {
+  const value = enabled ? 'true' : 'false';
+  Array.from(document.getElementsByClassName(cls)).forEach(el => {
+    (el as HTMLElement).setAttribute('contenteditable', value);
+  });
+}
+
+function formatJsonStr(): void {
+  try {
+    jsonStr.value = prettyJson(jsonStr.value, 2);
+  } catch {
+    // ignore invalid json
+  }
+}
+
+function applyTheme(theme: string): void {
+  const body = document.body;
+  themeOptions.forEach(t => body.classList.remove(t.className));
+  const cfg = getThemeConfig(theme);
+  body.classList.add(getThemeClass(theme));
+  const palette = cfg.palette;
+  const rootStyle = document.documentElement.style;
+  Object.entries(palette).forEach(([k, v]) => {
+    const cssVarName = '--' + k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());
+    rootStyle.setProperty(cssVarName, v);
+  });
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -654,4 +757,3 @@ function mockJson(value: unknown, rules: BaseMockRules): any {
 @import url(../table.css);
 @import url(../overlay.css);
 </style>
-
