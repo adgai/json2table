@@ -9,9 +9,10 @@
 // });
 
 function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
-    const add_point_h_w = 10
+    const add_point_h_w = 6
     const add_point_h_w_half = add_point_h_w / 2;
     const side_h_w = 10
+    const colOverlayHeight = 10;
     const side_all = add_point_h_w + side_h_w
 
 
@@ -30,6 +31,9 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
     // overlay.style.top = y + "px";
 
     // 行左侧 overlay（包括 thead + tbody）
+    let lastDataPath = '';
+    let lastDataIndex = -1;
+
     Array.from(table.rows).forEach((row: HTMLTableRowElement, i: number) => {
 
         const rowHeight = row.getBoundingClientRect().height;  // 更精确
@@ -47,7 +51,9 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
             row.classList.add("row-highlight");
         };
         ro.onmouseout = () => {
-            row.classList.remove("row-highlight");
+            if (!row.classList.contains('row-selected')) {
+                row.classList.remove("row-highlight");
+            }
         };
 
 
@@ -60,7 +66,7 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
             ro.classList.add("row-overlay-last");
         }
 
-        ro.dataset.row = ' + i+ ';
+        ro.dataset.row_index = String(i);
 
         // ro.onclick = (e) => {
         //     // e.stopPropagation();
@@ -92,12 +98,14 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
 
         const a_btn = document.createElement('div');
         a_btn.className = "left_btn_a_btn";
-        a_btn.style.width = add_point_h_w + 'px'
-        a_btn.style.height = add_point_h_w + 'px'
+        a_btn.dataset.row_path = row.dataset.path ?? '';
+        a_btn.dataset.row_index = String(i);
+        a_btn.title = 'Insert row';
 
         const line = document.createElement('div');
         line.className = "left_btn_line";
-        line.style.width = side_h_w + rect.width + "px";
+        line.style.width = side_h_w + rect.width - add_point_h_w + "px";
+        line.style.marginLeft = add_point_h_w + 'px';
 
         const l_innerLine = document.createElement('div');
         l_innerLine.className = "inner-line";
@@ -107,6 +115,11 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
         left_btn.appendChild(line)
         // console.log(row.offsetHeight)
         overlay.appendChild(left_btn);
+
+        if (row.dataset.path) {
+            lastDataPath = row.dataset.path;
+            lastDataIndex = i;
+        }
     });
 
     const left_btn = document.createElement('div');
@@ -126,13 +139,16 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
     const a_btn = document.createElement('div');
     a_btn.className = "left_btn_a_btn";
 
-    a_btn.style.width = add_point_h_w + 'px'
-    a_btn.style.height = add_point_h_w + 'px'
+    a_btn.dataset.row_path = lastDataPath;
+    a_btn.dataset.row_index = String(lastDataIndex + 1);
+    a_btn.dataset.insert_after = 'true';
+    a_btn.title = 'Insert row';
 
 
     const line = document.createElement('div');
     line.className = "left_btn_line";
-    line.style.width = side_h_w + rect.width + "px";
+    line.style.width = side_h_w + rect.width - add_point_h_w + "px";
+    line.style.marginLeft = add_point_h_w + 'px';
     // line.style.height = add_point_h_w + 'px'
     // line.style.backgroundColor = "#00aaff"
 
@@ -169,9 +185,10 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
         if (j == firstRow.length - 1) {
             co.classList.add("col-overlay-last");
         }
-        co.style.height = side_h_w + 'px'
-        co.style.top = -side_h_w + "px";
-        co.style.top = wrapOffset(-side_h_w, x, y, 'top') + "px";
+
+        co.style.height = colOverlayHeight + 'px'
+        co.style.top = -colOverlayHeight + "px";
+        co.style.top = wrapOffset(-colOverlayHeight, x, y, 'top') + "px";
 
 
         co.onmouseover = () => {
@@ -186,12 +203,15 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
             const rows: HTMLTableRowElement[] = Array.from(table.rows);
             for (const row of rows) {
                 const cell = row.cells.item(j);
-                if (cell) cell.classList.remove("col-highlight");
+                if (cell && !cell.classList.contains('col-selected')) {
+                    cell.classList.remove("col-highlight");
+                }
             }
         };
 
         // co.style.height = '0px'
         co.dataset.col = '';
+        co.dataset.col_index = String(j);
         // co.onclick = (e) => {
         //     e.stopPropagation();
         //     alert("列操作菜单: 第 " + j + " 列（含表头）");
@@ -223,10 +243,23 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
         t_a_btn.style.width = add_point_h_w + "px";
         t_a_btn.style.height = add_point_h_w + 'px'
 
+        // 记录列路径与索引
+        const headerCenter = cell_tag_name === 'TH'
+            ? (cell.querySelector('.th_center') as HTMLDivElement | null)
+            : null;
+        const cellPath = cell_tag_name === 'TH'
+            ? (headerCenter?.dataset.jspath ?? '')
+            : (cell.dataset.jspath ?? '');
+        const colPath = cellPath || '$';
+        t_a_btn.dataset.col_path = colPath;
+        t_a_btn.dataset.col_index = String(j);
+        t_a_btn.dataset.insert_after = 'false';
+
         const t_line = document.createElement('div');
         t_line.className = "top_btn_line";
         t_line.style.width = add_point_h_w + "px";
-        t_line.style.height = side_h_w + rect.height + "px";
+        t_line.style.height = side_h_w + rect.height - add_point_h_w + "px";
+        t_line.style.marginTop = add_point_h_w + 'px';
         // line.style.backgroundColor = "#00aaff"
 
         const innerLine = document.createElement('div');
@@ -265,6 +298,19 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
     t_a_btn.className = "top_btn_a_btn";
     t_a_btn.style.width = add_point_h_w + "px";
     t_a_btn.style.height = add_point_h_w + "px";
+    const lastHeaderCell = firstRow[firstRow.length - 1];
+    let lastPath = '';
+    if (lastHeaderCell) {
+        if (lastHeaderCell.tagName === 'TH') {
+            const q = lastHeaderCell.querySelector('.th_center') as HTMLDivElement | null;
+            lastPath = q?.dataset.jspath ?? '';
+        } else {
+            lastPath = (lastHeaderCell as HTMLElement).dataset.jspath ?? '';
+        }
+    }
+    t_a_btn.dataset.col_path = lastPath;
+    t_a_btn.dataset.col_index = String(firstRow.length);
+    t_a_btn.dataset.insert_after = 'true';
 
     const t_line = document.createElement('div');
     t_line.className = "top_btn_line";

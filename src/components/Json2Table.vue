@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="header">
       <div class="header-controls">
@@ -6,7 +6,7 @@
           <SimpleSwitch v-model="editSwitch"></SimpleSwitch>
         </div>
         <div class="theme_picker">
-          <label for="theme-select">主题：</label>
+          <label for="theme-select">Theme:</label>
           <select id="theme-select" v-model="themeName">
             <option v-for="opt in themeOptions" :key="opt.value" :value="opt.value">
               {{ opt.label }}
@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, onUpdated, ref, toRaw, watch} from 'vue'
+import {onMounted, onUpdated, ref, toRaw, watch, onBeforeUnmount} from 'vue'
 import {genHtml} from "@/util/nJsonTable";
 // eslint-disable-next-line no-unused-vars
 import {buildOverlay} from "@/util/overlay";
@@ -112,8 +112,13 @@ const tableHtmlStr = ref('')
 const themeName = ref('neutral')
 
 let refresh_html = ref(true)
+// 复制/粘贴状态
+let selectedRowMeta: {parentPath: string; rowIndex: number} | null = null
+let selectedColMeta: {arrayPath: string; fieldKey: string} | null = null
+let copiedRow: {value: any} | null = null
+let copiedCol: {values: any[]; fieldKey: string} | null = null
 
-// 可以直接侦听一个 ref
+// ����ֱ������һ??ref
 watch(jsonStr, async (newQuestion) => {
       if (newQuestion === '') {
         return
@@ -165,6 +170,8 @@ onMounted(() => {
   setEditableVisible(editSwitch.value)
   applyTheme(themeName.value)
   formatJsonStr()
+  setupClearSelectionListeners()
+  setupCopyPasteHotkeys()
 
 })
 onUpdated(() => {
@@ -182,26 +189,25 @@ onUpdated(() => {
         var numComments = comments.length;
         for (var i = 0; i < numComments; i++) {
 
-          bindOnce(comments[i], 'click', () => function (e) {
+          bindOnce(comments[i], 'click', () => function () {
             // console.log(1332313);
             if (editSwitch.value) {
               return
             }
-            // 使用 e.stopPropagation() 来阻止事件冒泡
-            e.stopPropagation();
+            // ʹ�� e.stopPropagation() ����ֹ�¼�ð??            e.stopPropagation();
 
-            // 使用 `this` 获取被点击的元素
+            // ʹ�� `this` ��ȡ�������Ԫ��
             // console.log(this);
 
-            // 获取被点击元素的类名
+            // ��ȡ�����Ԫ�ص�����
             // const classListElement1 = this.classList[0];
             const classListElement1 = this.dataset.jspath;
 
             jp_v.value = classListElement1;
-            show("提示：已复制 \n     " + classListElement1)
+            show("��ʾ���Ѹ��� \n     " + classListElement1)
             navigator.clipboard.writeText(classListElement1)
 
-            // 这里可以添加其他代码
+            // ������������������
           }, 'tds_content_click');
 
 
@@ -250,7 +256,7 @@ onUpdated(() => {
             const jpv = this.dataset.jspath
             jp.value = jpv
             navigator.clipboard.writeText(jpv)
-            show("提示：已复制 \n     " + jpv)
+            show("��ʾ���Ѹ��� \n     " + jpv)
 
             console.log(jp)
             var j_ses = Array.from(document.getElementsByClassName('json-selected'));
@@ -305,7 +311,7 @@ onUpdated(() => {
                 // const jpv = classs.split(' ')[1];
                 const curPath = this.dataset.cur_path;
 
-                // 修改
+                // �޸�
                 JSONPath({
                   path: curPath,
                   json: toRaw(json_o.value),
@@ -313,7 +319,7 @@ onUpdated(() => {
                   callback: (value, type, payload) => {
 
                     const suggested = makeUniqueKey(value);
-                    const key = prompt('新字段名：', suggested) || suggested;
+                    const key = prompt('New field name?', suggested) || suggested;
 
                     if (Array.isArray(value)) {
                       value.forEach(item => {
@@ -352,7 +358,7 @@ onUpdated(() => {
 
             console.log(JSON.stringify(evaluate[0]));
 
-            // 修改
+            // �޸�
             JSONPath({
               path: curPath,
               json: toRaw(json_o.value),
@@ -367,8 +373,7 @@ onUpdated(() => {
                   const source = payload.parent[payload.parentProperty];
                   const mock = mockJson(source[0], rules)
                   source.push(mock);
-                  payload.parent[payload.parentProperty] = source// 直接改
-
+                  payload.parent[payload.parentProperty] = source// ֱ��??
                 }
 
               }
@@ -381,92 +386,216 @@ onUpdated(() => {
           }, 'bottom_add_click')
         }
 
-        batchAddEventListener('click', 'row-overlay', function (e) {
-          if (!editSwitch.value) {
-            return
-          }
+        batchAddEventListener('click', 'row-overlay', function (e: MouseEvent) {
+          if (!editSwitch.value) return;
           e.stopPropagation();
 
-          const tablePath = this.dataset.table_path;
-          if (!tablePath || /^(null|undefined)$/i.test(tablePath)) return;
+          const rowPath = this.dataset.table_path as string | undefined;
+          if (!rowPath) return;
 
-          console.log(tablePath);
+          toggleRowSelection(this as HTMLElement);
 
-          // 注意：这里用 reactive 的 json_o.value，别用 toRaw
-          JSONPath({
-            path: tablePath,
-            json: json_o.value,
-            callback: (value, type, payload) => {
+          const {parentPath, rowIndex} = parseRowPath(rowPath);
+          if (parentPath == null || rowIndex == null) return;
 
-              // 命中根：要单独处理
-              if (tablePath === '$') {
-                if (Array.isArray(json_o.value)) {
-                  // 清空根数组（两种都行）
-                  json_o.value.length = 0;
-                  // 或者：json_o.value = []
-                } else if (json_o.value && typeof json_o.value === 'object') {
-                  // 清空根对象
-                  Object.keys(json_o.value).forEach(k => delete json_o.value[k]);
-                } else {
-                  // 其他类型，按需处理
-                  json_o.value = null as any;
+          const insertRow = (insertAfter: boolean) => {
+            JSONPath({
+              path: parentPath,
+              json: json_o.value,
+              callback: (value) => {
+                if (!Array.isArray(value)) return;
+                const template = value[Math.min(rowIndex, Math.max(0, value.length - 1))];
+                const blank = cloneStructure(template);
+                const pos = insertAfter ? rowIndex + 1 : rowIndex;
+                value.splice(Math.min(pos, value.length), 0, blank);
+              }
+            });
+            refresh_html.value = true;
+            jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+          };
+
+          const deleteRow = () => {
+            JSONPath({
+              path: parentPath,
+              json: json_o.value,
+              callback: (value) => {
+                if (!Array.isArray(value)) return;
+                if (rowIndex < 0 || rowIndex >= value.length) return;
+                value.splice(rowIndex, 1);
+              }
+            });
+            refresh_html.value = true;
+            jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+          };
+
+          showContextMenu(e, [
+            {label: '<img src="/add/up.svg" alt="向上添加一行" class="menu-icon">', action: () => insertRow(false)},
+            {label: '<img src="/add/down.svg" alt="向下添加一行" class="menu-icon">', action: () => insertRow(true)},
+            {label: '<img src="/add/delete.svg" alt="删除这行" class="menu-icon">', action: deleteRow},
+          ]);
+        })
+
+        const leftBtns = document.getElementsByClassName('left_btn_a_btn');
+        const leftBtnsLength = leftBtns.length;
+        for (let i = 0; i < leftBtnsLength; i++) {
+          bindOnce(leftBtns[i], 'click', () => function (e) {
+            if (!editSwitch.value) {
+              return
+            }
+            e.stopPropagation();
+
+            const rowPath = this.dataset.row_path;
+            if (!rowPath) return;
+
+            const match = rowPath.match(/\[(\d+)\]\s*$/);
+            if (!match) return;
+            const rowIndex = Number(match[1]);
+            const parentPath = rowPath.replace(/\[\d+\]\s*$/, '');
+            const insertAfter = this.dataset.insert_after === 'true';
+            const insertPos = insertAfter ? rowIndex + 1 : rowIndex;
+
+            JSONPath({
+              path: parentPath,
+              json: json_o.value,
+              callback: (value) => {
+                if (!Array.isArray(value)) return;
+                const template = value[Math.min(rowIndex, value.length - 1)];
+                const blank = cloneStructure(template);
+                value.splice(insertPos, 0, blank);
+              }
+            });
+
+            refresh_html.value = true;
+            jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+
+          }, 'left_btn_insert')
+        }
+
+        const topBtns = document.getElementsByClassName('top_btn_a_btn');
+        const topBtnsLength = topBtns.length;
+        for (let i = 0; i < topBtnsLength; i++) {
+          bindOnce(topBtns[i], 'click', () => function (e) {
+            if (!editSwitch.value) return;
+            e.stopPropagation();
+
+            const colPath = this.dataset.col_path;
+            const m = colPath ? colPath.match(/^(.*)\.([^.[]+)(\[\*\])?$/) : null;
+            const parentPath = m ? m[1] : '$';
+            const fieldKey = m ? m[2] : 'field';
+            const arrayPath = parentPath.replace(/\[\*\]$/, '') || '$';
+            const insertAfter = this.dataset.insert_after === 'true';
+
+            JSONPath({
+              path: arrayPath,
+              json: json_o.value,
+              callback: (value) => {
+                const key = makeUniqueKey(
+                    (Array.isArray(value) ? value.find(v => v && typeof v === 'object') : value) ?? {},
+                    fieldKey || 'field'
+                );
+
+                const insertField = (obj: Record<string, any>): Record<string, any> =>
+                    insertKeyWithOrder(obj, key, fieldKey, insertAfter);
+
+                if (Array.isArray(value)) {
+                  if (value.length === 0) {
+                    value.push(insertField({}));
+                    return;
+                  }
+                  value.forEach((obj, idx) => {
+                    if (obj && typeof obj === 'object') {
+                      value[idx] = insertField(obj);
+                    } else {
+                      value[idx] = insertField({});
+                    }
+                  });
+                } else if (value && typeof value === 'object') {
+                  const newObj = insertField(value as Record<string, any>);
+                  Object.keys(value as Record<string, any>).forEach(k => delete (value as Record<string, any>)[k]);
+                  Object.assign(value as Record<string, any>, newObj);
                 }
-                return;
               }
+            });
 
-              const parent = payload.parent;
-              const key = payload.parentProperty;
+            refresh_html.value = true;
+            jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
 
-              if (Array.isArray(parent)) {
-                // 删除当前命中的这个元素
-                parent.splice(Number(key), 1);
-              } else if (parent && typeof parent === 'object') {
-                // 删除当前命中的这个字段
-                delete parent[key];
-              }
-            }
-          });
+          }, 'top_btn_insert')
+        }
 
-          refresh_html.value = true;
-          // jsonStr.value = JSON.stringify(toRaw(json_o.value))
-          jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
-
-        })
-
-        batchAddEventListener('click', 'col-overlay', function (e) {
+        batchAddEventListener('click', 'col-overlay', function (e: MouseEvent) {
+          if (!editSwitch.value) return;
           e.stopPropagation();
 
-          const tablePath = this.dataset.table_path;
-          if (!tablePath || /^(null|undefined)$/i.test(tablePath)) return;
+          const colPath = this.dataset.table_path as string | undefined;
+          if (!colPath) return;
 
-          console.log(tablePath);
+          toggleColSelection(this as HTMLElement);
 
-          // 注意：这里用 reactive 的 json_o.value，别用 toRaw
-          JSONPath({
-            path: tablePath,
-            json: json_o.value,
-            callback: (value, type, payload) => {
+          const parsed = parseColPath(colPath);
+          const parentPath = parsed.parentPath ?? '$';
+          const fieldKey = parsed.fieldKey ?? 'field';
+          const arrayPath = parentPath.replace(/\[\*\]$/, '') || '$';
 
-              const parent = payload.parent;
-              const key = payload.parentProperty;
+          const mutate = (insertAfter: boolean) => {
+            JSONPath({
+              path: arrayPath,
+              json: json_o.value,
+              callback: (value) => {
+                const sample = Array.isArray(value)
+                    ? (value.find(v => v && typeof v === 'object') ?? {})
+                    : (value && typeof value === 'object' ? value : {});
+                const newKey = makeUniqueKey(sample as Record<string, any>, fieldKey);
+                const insertField = (obj: Record<string, any>): Record<string, any> =>
+                    insertKeyWithOrder(obj, newKey, fieldKey, insertAfter);
 
-              if (Array.isArray(parent)) {
-                // 删除当前命中的这个元素
-                parent.splice(Number(key), 1);
-              } else if (parent && typeof parent === 'object') {
-                // 删除当前命中的这个字段
-                delete parent[key];
+                if (Array.isArray(value)) {
+                  if (value.length === 0) {
+                    value.push(insertField({}));
+                    return;
+                  }
+                  value.forEach((obj, idx) => {
+                    value[idx] = insertField(obj && typeof obj === 'object' ? obj : {});
+                  });
+                } else if (value && typeof value === 'object') {
+                  const newObj = insertField(value as Record<string, any>);
+                  Object.keys(value as Record<string, any>).forEach(k => delete (value as Record<string, any>)[k]);
+                  Object.assign(value as Record<string, any>, newObj);
+                }
               }
-            }
-          });
+            });
+            refresh_html.value = true;
+            jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+          };
 
-          refresh_html.value = true;
-          // jsonStr.value = JSON.stringify(toRaw(json_o.value))
-          jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+          const deleteCol = () => {
+            JSONPath({
+              path: arrayPath,
+              json: json_o.value,
+              callback: (value) => {
+                if (Array.isArray(value)) {
+                  value.forEach((obj, idx) => {
+                    if (obj && typeof obj === 'object') {
+                      delete (obj as Record<string, any>)[fieldKey];
+                    } else {
+                      value[idx] = {};
+                    }
+                  });
+                } else if (value && typeof value === 'object') {
+                  delete (value as Record<string, any>)[fieldKey];
+                }
+              }
+            });
+            refresh_html.value = true;
+            jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4)
+          };
 
+          showContextMenu(e, [
+            {label: '<img src="/add/left.svg" alt="向左添加一列" class="menu-icon">', action: () => mutate(false)},
+            {label: '<img src="/add/right.svg" alt="向右添加一列" class="menu-icon">', action: () => mutate(true)},
+            {label: '<img src="/add/delete.svg" alt="删除该列" class="menu-icon">', action: deleteCol},
+          ]);
         })
-
-
         const leafs = document.getElementsByClassName('td_content_leaf');
         const leafs_length = leafs.length;
         for (let i = 0; i < leafs_length; i++) {
@@ -482,7 +611,7 @@ onUpdated(() => {
                 // console.log(JSON.stringify(toRaw(payload)));
                 const tablePath = payload1.el.dataset.path;
 
-                // 注意：这里用 reactive 的 json_o.value，别用 toRaw
+                // ע�⣺������ reactive ??json_o.value����??toRaw
                 JSONPath({
                   path: tablePath,
                   json: json_o.value,
@@ -526,7 +655,7 @@ onUpdated(() => {
                 console.log(afterText)
                 console.log(beforeText)
 
-                // 注意：这里用 reactive 的 json_o.value，别用 toRaw
+                // ע�⣺������ reactive ??json_o.value����??toRaw
 
                 const cur_path = replaceAfterLastDot(tablePath === undefined ? '' : tablePath, beforeText);
                 JSONPath({
@@ -540,16 +669,15 @@ onUpdated(() => {
 
                     if (Array.isArray(parent)) {
                       parent.forEach(k => {
-                        const before_value = k[beforeText];
-                        k[afterText] = before_value;
+                        const beforeValue = k[beforeText];
+                        k[afterText] = beforeValue;
 
                         delete k[beforeText];
                       });
 
                     } else if (parent && typeof parent === 'object') {
-                      // 删除当前命中的这个字段
-                      const before_value = parent[beforeText];
-                      parent[afterText] = before_value;
+                      const beforeValue = parent[beforeText];
+                      parent[afterText] = beforeValue;
 
                       delete parent[beforeText];
                     }
@@ -569,38 +697,34 @@ onUpdated(() => {
     }
 )
 
-/** 将最后一个点后的内容替换为 replacement。
- * 例：foo.bar.baz -> foo.bar.NEW
+/** �����һ�����������滻??replacement?? * ����foo.bar.baz -> foo.bar.NEW
  */
 function replaceAfterLastDot(s: string, replacement: string): string {
   const i = s.lastIndexOf('.');
-  if (i === -1) return s;          // 没有点，原样返回
-  if (i === s.length - 1) return s + replacement; // 末尾就是点
-  return s.slice(0, i + 1) + replacement;
+  if (i === -1) return s;          // û�е㣬ԭ������
+  if (i === s.length - 1) return s + replacement; // ĩβ����??  return s.slice(0, i + 1) + replacement;
 }
 
 /**
- * 把 JSON 字符串格式化为可读文本
- * @param jsonText 原始 JSON 字符串
- * @param indent 缩进空格数（默认 2）
- * @param eol 行尾（默认 '\n'，可传 '\r\n' 适配 Windows）
- */
+ * ??JSON �ַ�����ʽ��Ϊ�ɶ���?? * @param jsonText ԭʼ JSON �ַ�?? * @param indent �����ո�����Ĭ�� 2?? * @param eol ��β��Ĭ??'
+'����??'\r
+' ���� Windows?? */
 function prettyJson(
     jsonText: string,
     indent: number = 2,
     eol: '\n' | '\r\n' = '\n'
 ): string {
-  // 1) 解析（验证 JSON 合法性）
+  // 1) ��������֤ JSON �Ϸ��ԣ�
   const obj = JSON.parse(jsonText);
 
-  // 2) 序列化 + 缩进
+  // 2) ���л� + ����
   const pretty = JSON.stringify(obj, null, indent);
 
-  // 3) 统一行尾
-  return pretty.replace(/\n/g, eol);
+  // 3) ͳһ��β
+  return pretty.replace(/\r?\n/g, eol);
 }
 
-// 工具：为对象生成一个唯一 key
+// ���ߣ�Ϊ��������һ��Ψһ key
 // eslint-disable-next-line no-unused-vars
 function makeUniqueKey(obj: Record<string, any>, base = 'field') {
   let key = base;
@@ -641,6 +765,325 @@ function bindEditEndOnce(
   onContentEditEnd(el, onEnd);
 }
 
+function cloneStructure(template: unknown): any {
+  if (Array.isArray(template)) {
+    return [];
+  }
+  if (template && typeof template === 'object') {
+    const out: Record<string, any> = {};
+    Object.entries(template as Record<string, any>).forEach(([k, v]) => {
+      if (Array.isArray(v)) out[k] = [];
+      else out[k] = null;
+    });
+    return out;
+  }
+  return {};
+}
+
+function insertKeyWithOrder(
+    obj: Record<string, any>,
+    newKey: string,
+    targetKey: string | undefined,
+    insertAfter: boolean
+): Record<string, any> {
+  const out: Record<string, any> = {};
+  let inserted = false;
+  for (const [k, v] of Object.entries(obj)) {
+    if (targetKey && k === targetKey && !insertAfter && !inserted) {
+      out[newKey] = null;
+      inserted = true;
+    }
+    out[k] = v;
+    if (targetKey && k === targetKey && insertAfter && !inserted) {
+      out[newKey] = null;
+      inserted = true;
+    }
+  }
+  if (!inserted) out[newKey] = null;
+  return out;
+}
+
+function parseRowPath(path: string): {parentPath: string | null; rowIndex: number | null} {
+  const m = path.match(/^(.*)\[(\d+)\]\s*$/);
+  if (!m) return {parentPath: null, rowIndex: null};
+  return {parentPath: m[1], rowIndex: Number(m[2])};
+}
+
+function parseColPath(path: string): {parentPath: string | null; fieldKey: string | null} {
+  if (!path) return {parentPath: null, fieldKey: null};
+
+  const m = path.match(/^(.*)\.([^.[]+)(\[\*\])?$/);
+  if (m) return {parentPath: m[1], fieldKey: m[2]};
+
+  // 仅数组路径（如 "$[*]"）或根路径 "$"
+  const arrOnly = path.match(/^(.*)\[\*\]$/);
+  if (arrOnly) return {parentPath: arrOnly[1] || '$', fieldKey: 'field'};
+  if (path === '$') return {parentPath: '$', fieldKey: 'field'};
+
+  // 兜底
+  return {parentPath: path, fieldKey: 'field'};
+}
+
+function toggleRowSelection(target: HTMLElement): void {
+  const table = target.closest('.table-container')?.querySelector('table');
+  if (!table) return;
+
+  // 清除所有行的选中状态
+  Array.from(table.rows).forEach(r => {
+    r.classList.remove('row-highlight');
+    r.classList.remove('row-selected');
+  });
+
+  const idx = Number(target.dataset.row_index);
+  if (!Number.isFinite(idx)) return;
+  const row = table.rows.item(idx);
+  if (!row) return;
+
+  // 选中当前行
+  row.classList.add('row-highlight');
+  row.classList.add('row-selected');
+
+  const rowPath = target.dataset.table_path || '';
+  const parsed = parseRowPath(rowPath);
+  if (parsed.parentPath != null && parsed.rowIndex != null) {
+    selectedRowMeta = {parentPath: parsed.parentPath, rowIndex: parsed.rowIndex};
+  }
+}
+
+function toggleColSelection(target: HTMLElement): void {
+  const table = target.closest('.table-container')?.querySelector('table');
+  if (!table) return;
+  const idx = Number(target.dataset.col_index);
+  if (!Number.isFinite(idx)) return;
+
+  // 清除所有列的高亮/选中
+  Array.from(table.rows).forEach(r => {
+    Array.from(r.cells).forEach(c => {
+      c.classList.remove('col-highlight');
+      c.classList.remove('col-selected');
+    });
+  });
+
+  // 选中当前列
+  Array.from(table.rows).forEach(r => {
+    const cell = r.cells.item(idx);
+    if (cell) {
+      cell.classList.add('col-highlight');
+      cell.classList.add('col-selected');
+    }
+  });
+
+  const colPath = target.dataset.table_path || '';
+  const parsed = parseColPath(colPath);
+  if (parsed.parentPath && parsed.fieldKey) {
+    const arrayPath = parsed.parentPath.replace(/\[\*\]$/, '') || '$';
+    selectedColMeta = {arrayPath, fieldKey: parsed.fieldKey};
+  }
+}
+
+function clearRowSelection(): void {
+  document.querySelectorAll('.row-highlight').forEach(el => el.classList.remove('row-highlight'));
+  document.querySelectorAll('.row-selected').forEach(el => el.classList.remove('row-selected'));
+  selectedRowMeta = null;
+}
+
+function clearColSelection(): void {
+  document.querySelectorAll('.col-highlight').forEach(el => el.classList.remove('col-highlight'));
+  document.querySelectorAll('.col-selected').forEach(el => el.classList.remove('col-selected'));
+  selectedColMeta = null;
+}
+
+function setupClearSelectionListeners(): void {
+  const handler = (ev: Event) => {
+    const target = ev.target as HTMLElement | null;
+    if (!target) return;
+    if (!target.closest('.row-overlay')) {
+      clearRowSelection();
+    }
+    if (!target.closest('.col-overlay')) {
+      clearColSelection();
+    }
+  };
+  document.addEventListener('click', handler, true);
+  onBeforeUnmount(() => document.removeEventListener('click', handler, true));
+}
+
+function parseCellPath(path: string): {arrayPath: string | null; rowIndex: number | null; fieldKey: string | null} {
+  const m = path.match(/^(.*)\[(\d+)\]\.([^.[]+)$/);
+  if (m) return {arrayPath: m[1], rowIndex: Number(m[2]), fieldKey: m[3]};
+  const m2 = path.match(/^(.*)\.([^.[]+)$/);
+  if (m2) return {arrayPath: m2[1], rowIndex: null, fieldKey: m2[2]};
+  return {arrayPath: null, rowIndex: null, fieldKey: null};
+}
+
+function cloneDeep<T>(v: T): T {
+  return JSON.parse(JSON.stringify(v));
+}
+
+function setupCopyPasteHotkeys(): void {
+  const handler = (e: KeyboardEvent) => {
+    if (!editSwitch.value) return;
+    const key = e.key.toLowerCase();
+    const target = e.target as HTMLElement | null;
+    const path = target?.dataset?.jspath || target?.closest('[data-jspath]')?.getAttribute('data-jspath');
+
+    if ((e.ctrlKey || e.metaKey) && key === 'c') {
+      if (selectedColMeta) {
+        JSONPath({
+          path: selectedColMeta.arrayPath,
+          json: json_o.value,
+          callback: (value) => {
+            if (!Array.isArray(value)) return;
+            copiedCol = {
+              values: value.map(v => (v && typeof v === 'object') ? cloneDeep((v as Record<string, any>)[selectedColMeta!.fieldKey]) : null),
+              fieldKey: selectedColMeta.fieldKey
+            };
+          }
+        });
+        e.preventDefault();
+        return;
+      }
+      if (selectedRowMeta) {
+        const rowPath = `${selectedRowMeta.parentPath}[${selectedRowMeta.rowIndex}]`;
+        JSONPath({
+          path: rowPath,
+          json: json_o.value,
+          callback: (value) => {
+            copiedRow = {value: cloneDeep(value)};
+          }
+        });
+        e.preventDefault();
+      }
+    }
+
+    if ((e.ctrlKey || e.metaKey) && key === 'v') {
+      if (copiedCol && path) {
+        const info = parseCellPath(path);
+        const arrayPath = info.arrayPath;
+        const fieldKey = info.fieldKey || copiedCol.fieldKey;
+        if (!arrayPath || !fieldKey) return;
+        JSONPath({
+          path: arrayPath,
+          json: json_o.value,
+          callback: (value) => {
+            if (!Array.isArray(value)) return;
+            value.forEach((row, idx) => {
+              if (!row || typeof row !== 'object') value[idx] = {};
+              (value[idx] as Record<string, any>)[fieldKey] = cloneDeep(copiedCol!.values[idx] ?? null);
+            });
+          }
+        });
+        refresh_html.value = true;
+        jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4);
+        e.preventDefault();
+        return;
+      }
+      if (copiedRow && path) {
+        const info = parseCellPath(path);
+        const arrayPath = info.arrayPath;
+        const rowIndex = info.rowIndex;
+        if (!arrayPath || rowIndex == null) return;
+        JSONPath({
+          path: arrayPath,
+          json: json_o.value,
+          callback: (value) => {
+            if (!Array.isArray(value)) return;
+            value[rowIndex] = cloneDeep(copiedRow!.value);
+          }
+        });
+        refresh_html.value = true;
+        jsonStr.value = prettyJson(JSON.stringify(toRaw(json_o.value)), 4);
+        e.preventDefault();
+      }
+    }
+  };
+  document.addEventListener('keydown', handler, true);
+  onBeforeUnmount(() => document.removeEventListener('keydown', handler, true));
+}
+type MenuItem = {label: string; action: () => void};
+
+function showContextMenu(e: MouseEvent, items: MenuItem[]): void {
+  removeContextMenu();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    if (item.label.trim().startsWith('<')) {
+      btn.innerHTML = item.label;
+    } else {
+      btn.textContent = item.label;
+    }
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      item.action();
+      removeContextMenu();
+    });
+    menu.appendChild(btn);
+  });
+
+  document.body.appendChild(menu);
+
+  // ���ȷ��ڱ����ࣺ��������пռ������࣬������Ҳ࣬�������ڱ�����·�Χ��
+  const rect = menu.getBoundingClientRect();
+  const margin = 12;
+  const targetEl = e.currentTarget as HTMLElement | null;
+  const targetRect = targetEl?.getBoundingClientRect(); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const tableEl = targetEl?.closest('.table-container') as HTMLElement | null;
+  const tableRect = tableEl?.getBoundingClientRect();
+
+  const isColOverlay = targetEl?.classList.contains('col-overlay');
+
+  let leftCandidate = e.pageX + margin;
+  let topCandidate = e.pageY - rect.height / 2;
+
+  if (isColOverlay && targetRect) {
+    // �в˵���������ʾ�ڵ�������Ϸ�
+    leftCandidate = targetRect.left + window.scrollX + (targetRect.width - rect.width) / 2;
+    topCandidate = targetRect.top + window.scrollY - rect.height - margin;
+    if (topCandidate < window.scrollY + margin) {
+      // ����Ϸ��������ٷŵ��·�
+      topCandidate = targetRect.bottom + window.scrollY + margin;
+    }
+    // ���ֲ������ӿ�
+    leftCandidate = Math.max(window.scrollX + margin, Math.min(leftCandidate, window.scrollX + window.innerWidth - rect.width - margin));
+    topCandidate = Math.max(window.scrollY + margin, Math.min(topCandidate, window.scrollY + window.innerHeight - rect.height - margin));
+  } else if (tableRect) {
+    const tableLeft = tableRect.left + window.scrollX;
+    const tableRight = tableRect.right + window.scrollX;
+    const tableTop = tableRect.top + window.scrollY;
+    const tableBottom = tableRect.bottom + window.scrollY;
+
+    if (tableLeft - rect.width - margin > window.scrollX + margin) {
+      leftCandidate = tableLeft - rect.width - margin;
+    } else {
+      leftCandidate = tableRight + margin;
+    }
+
+    // ��ֱλ�������ڱ��Χ��
+    topCandidate = Math.min(Math.max(topCandidate, tableTop), tableBottom - rect.height);
+  } else {
+    // �ޱ����Ϣ���˻�Ϊ�ӿ�����
+    leftCandidate = Math.max(window.scrollX + margin, e.pageX - rect.width - margin);
+    if (leftCandidate < window.scrollX + margin) leftCandidate = e.pageX + margin;
+    const maxTop = window.scrollY + window.innerHeight - rect.height - margin;
+    topCandidate = Math.min(Math.max(topCandidate, window.scrollY + margin), maxTop);
+  }
+
+  menu.style.left = `${leftCandidate}px`;
+  menu.style.top = `${topCandidate}px`;
+
+  const close = () => {
+    removeContextMenu();
+    document.removeEventListener('click', close, true);
+  };
+  document.addEventListener('click', close, true);
+}
+
+function removeContextMenu(): void {
+  const old = document.querySelector('.context-menu');
+  if (old) old.remove();
+}
 
 function batchAddEventListener(event: string, className: string, listener): void {
   var bottom_add_ = document.getElementsByClassName(className);
@@ -660,7 +1103,7 @@ function setAddButtonsVisible(visible: boolean): void {
   });
 }
 
-// 控制 contenteditable，非编辑模式禁用
+// ���� contenteditable���Ǳ༭ģʽ����
 function setEditableVisible(enabled: boolean): void {
   toggleEditableByClass('td_content_leaf', enabled);
   toggleEditableByClass('th_center', enabled);
@@ -696,14 +1139,12 @@ function applyTheme(theme: string): void {
 
 // eslint-disable-next-line no-unused-vars
 // function removeAt(arr, idx) {
-//   if (idx < 0) idx += arr.length; // 负下标支持
-//   if (idx < 0 || idx >= arr.length) return arr.slice(); // 越界：返回拷贝或原数组
-//   return [...arr.slice(0, idx), ...arr.slice(idx + 1)];
+//   if (idx < 0) idx += arr.length; // ���±�֧??//   if (idx < 0 || idx >= arr.length) return arr.slice(); // Խ�磺���ؿ�����ԭ��??//   return [...arr.slice(0, idx), ...arr.slice(idx + 1)];
 // }
 //
 // // eslint-disable-next-line no-unused-vars
 // function getLastBracketContent(str) {
-//   const re = /\[([^\]]+)\](?!.*\[)/; // 匹配最后一个 [...]
+//   const re = /\[([^\]]+)\](?!.*\[)/; // ƥ�����һ??[...]
 //   const m = str.match(re);
 //   return m ? m[1] : null;
 // }
@@ -726,12 +1167,12 @@ function copyValue(jsonPath, json) {
   });
 
   navigator.clipboard.writeText(JSON.stringify(value));
-  show("提示：已复制 \n     " + value)
+  show("��ʾ���Ѹ��� \n     " + value)
 
 
 }
 
-// 递归 mock 函数
+// �ݹ� mock ����
 function mockJson(value: unknown, rules: BaseMockRules): any {
   if (Array.isArray(value)) {
     return value.map(item => mockJson(item, rules))

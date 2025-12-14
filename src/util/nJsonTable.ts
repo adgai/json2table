@@ -25,6 +25,9 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
         return s.outerHTML
 
     } else if (json instanceof Object) {
+        if (Object.keys(json).length === 0) {
+            return '';
+        }
         const t_path = pt_path
 
         const hm = getHeaderRoot(json);
@@ -242,7 +245,7 @@ function tbody(hm: Map<string, string>, json: any, path: string = '', t_path: st
     tr.dataset.t_path = t_path;
 
     if (hm.size === 0) {
-        const s = genHtml(json, path, t_path);
+        const s = '';
 
         const td = document.createElement('td');
         // td.className = path
@@ -264,7 +267,7 @@ function tbody(hm: Map<string, string>, json: any, path: string = '', t_path: st
         tddiv.classList.add('td_content')
         tddiv.innerHTML = s
 
-        if (json == null) {
+        if (json == null || (json instanceof Object && Object.keys(json).length === 0)) {
             tddiv.setAttribute('contenteditable', 'true');
             // tddiv.setAttribute('-webkit-user-modify', 'read-write-plaintext-only')
             tddiv.classList.add('td_content_leaf')
@@ -506,4 +509,3 @@ function parseHTML(html: string) {
 }
 
 export {genHtml}
-
