@@ -21,7 +21,7 @@ function genHtml(json: any, path: string = '$', pt_path: string = '$'): string {
             const s1 = tbody(hm, jsonElement, path_i, t_path+ '[*]');
             bodyArray.push(s1)
         }
-        const s = wrapTable1(path, headerStr, bodyArray, true, type);
+        const s = wrapTable1(path, headerStr, bodyArray, true, type, json.length === 0);
         return s.outerHTML
 
     } else if (json instanceof Object) {
@@ -245,7 +245,7 @@ function tbody(hm: Map<string, string>, json: any, path: string = '', t_path: st
     tr.dataset.t_path = t_path;
 
     if (hm.size === 0) {
-        const s = '';
+        const s = (json === null || json === undefined) ? '' : json.toString();
 
         const td = document.createElement('td');
         // td.className = path
@@ -265,7 +265,7 @@ function tbody(hm: Map<string, string>, json: any, path: string = '', t_path: st
         tddiv.dataset.path = path
 
         tddiv.classList.add('td_content')
-        tddiv.innerHTML = s
+        tddiv.textContent = s
 
         if (json == null || (json instanceof Object && Object.keys(json).length === 0)) {
             tddiv.setAttribute('contenteditable', 'true');
@@ -362,11 +362,15 @@ function wrapTable1(
     theader: HTMLTableSectionElement | null,
     tbodyArray: HTMLTableRowElement[],
     array: boolean,
-    type: string
+    type: string,
+    isArrayEmpty: boolean = false
 ): HTMLElement {
     // ====== 创建表格 ======
     const table = document.createElement('table');
     table.dataset.type = String(type);
+    if (array && isArrayEmpty) {
+        table.style.minWidth = '40px';
+    }
 
     if (theader === null) {
         table.id = 'non_header_table';
@@ -399,6 +403,16 @@ function wrapTable1(
     bottomAdd.textContent = '+';
     bottomAdd.className = 'bottom_add';
     bottomAdd.dataset.cur_path = path;
+    if (array && isArrayEmpty) {
+        bottomAdd.style.opacity = '1';
+        bottomAdd.style.pointerEvents = 'auto';
+        bottomAdd.style.height = '20px';
+        bottomAdd.style.width = '30px';
+        bottomAdd.style.minWidth = '30px';
+        bottomAdd.style.left = '50%';
+        bottomAdd.style.right = '';
+        bottomAdd.style.transform = 'translateX(-50%)';
+    }
     container.appendChild(bottomAdd);
 
     // ====== 右下角加号 ======

@@ -1,36 +1,35 @@
 [
+
   {
-    "conditionTypeDesc": null,
-    "conditionList": [
-      {
-        "conditionValueDesc": "武汉大学KA瑞幸&肯德基",
-        "conditionValue": "100018558"
-      },
-      {
-        "conditionValueDesc": "武汉大学-KA呷哺门店组",
-        "conditionValue": "100021093"
-      },
-      {
-        "conditionValueDesc": "武汉-武昌区武汉大学京东外卖",
-        "conditionValue": "100025385"
-      },
-      {
-        "conditionValueDesc": "校园-华中农业大学",
-        "conditionValue": "100027167"
-      },
-      {
-        "conditionValueDesc": "武汉-华中科技大学门店组",
-        "conditionValue": "100014368"
-      },
-      {
-        "conditionValueDesc": "武汉大学-肯德基武大信息学部KFC",
-        "conditionValue": "100024290"
-      },
-      {
-        "conditionValueDesc": "武汉-武昌区武汉大学校园-1段",
-        "conditionValue": "100016263"
-      }
-    ],
-    "conditionType": 1
+    "long_name" : "Amphitheatre Pkwy",
+    "short_name" : "Amphitheatre Pkwy",
+    "types" : [ "route" ]
+  },
+  {
+    "long_name" : "Mountain View",
+    "short_name" : "Mountain View",
+    "types" : [ "locality", "political" ]
+  },
+  {
+    "long_name" : "Santa Clara",
+    "short_name" : "Santa Clara",
+    "types" : [ "administrative_area_level_2", "political" ]
+  },
+  {
+    "long_name" : "California",
+    "short_name" : "CA",
+    "types" : [ "administrative_area_level_1", "political" ]
+  },
+  {
+    "long_name" : "United States",
+    "short_name" : "US",
+    "types" : [ "country", "political" ]
+  },
+  {
+    "long_name" : "94043",
+    "short_name" : "94043",
+    "types" : [ "postal_code" ]
   }
 ]
+
+

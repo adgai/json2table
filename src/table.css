@@ -120,7 +120,7 @@ td{
     cursor: url("./assets/cursor/Copy.cur"), copy;
 }
 td, th {
-    padding: 4px;
+    padding: 0px;
 }
 thead{
     color: var(--header-text);
@@ -386,10 +386,6 @@ thead{
     cursor: nwse-resize;
     opacity: 0;
 }
-.td_content{
-    /*padding-bottom: 30px;*/
-    /*padding-right: 30px;*/
-}
 
 .th_center{
     padding: 2px;
@@ -407,5 +403,5 @@ thead{
 #non_header_table td,
 #non_header_table th {
     border: 1px solid var(--cell-border);   /* 内部网格线 */
-    padding: 8px 12px;
+    /*padding: 8px 12px;*/
 }

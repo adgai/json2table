@@ -343,11 +343,25 @@ th:focus {
 .th_center {
     display: block;
     width: 100%;
+    min-width: 50px;
     height: 100%;
     min-height: 32px;
-    padding: 8px;
+    padding: 4px;
     box-sizing: border-box;
 }
+/*table {*/
+/*    border-collapse: collapse;*/
+/*    border-spacing: 0;*/
+/*}*/
+/*td{*/
+/*    padding: 0;*/
+/*    position:relative*/
+/*}*/
+
+/*.td_content_leaf {*/
+/*    position:absolute;*/
+/*    inset:0;*/
+/*}*/
 
 .tds_content,
 th {

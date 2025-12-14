@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <div class="header">
       <div class="header-controls">
@@ -168,6 +168,7 @@ onMounted(() => {
 
   setAddButtonsVisible(editSwitch.value)
   setEditableVisible(editSwitch.value)
+  setupCellClickToFocus()
   applyTheme(themeName.value)
   formatJsonStr()
   setupClearSelectionListeners()
@@ -178,6 +179,7 @@ onUpdated(() => {
 
       setAddButtonsVisible(editSwitch.value)
       setEditableVisible(editSwitch.value)
+      setupCellClickToFocus()
 
       if (editSwitch.value) {
         buildOverlayLocal()
@@ -1116,6 +1118,38 @@ function toggleEditableByClass(cls: string, enabled: boolean): void {
   });
 }
 
+// 点击单元格时，聚焦其直接子元素（td_content/td_content_leaf）
+function setupCellClickToFocus(): void {
+  const cells = Array.from(document.getElementsByClassName('tds_content'));
+  cells.forEach(cell => {
+    bindOnce(cell, 'click', () => function (ev: Event) {
+      if (!editSwitch.value) return;
+      const el = cell as HTMLElement;
+      const child = Array.from(el.children).find(
+          c => c.classList.contains('td_content_leaf') || c.classList.contains('td_content')
+      ) as HTMLElement | undefined;
+      if (child) {
+        child.focus();
+        const isClickOnCell = ev.target === cell;
+        if (isClickOnCell || !child.textContent || child.textContent.length === 0) {
+          placeCaretAtEnd(child);
+        }
+        ev.stopPropagation();
+      }
+    }, 'tds_content_focus');
+  });
+}
+
+function placeCaretAtEnd(el: HTMLElement): void {
+  const selection = window.getSelection();
+  if (!selection) return;
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
 function formatJsonStr(): void {
   try {
     jsonStr.value = prettyJson(jsonStr.value, 2);
@@ -1183,7 +1217,8 @@ function mockJson(value: unknown, rules: BaseMockRules): any {
     }
     return result
   } else if (typeof value === "string") {
-    return rules.string ? rules.string() : value
+    return ''
+    // return rules.string ? rules.string() : value
   } else if (typeof value === "number") {
     return rules.number ? rules.number() : value
   } else if (typeof value === "boolean") {

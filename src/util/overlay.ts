@@ -23,6 +23,11 @@ function buildOverlay(table: HTMLTableElement, overlay: HTMLDivElement): void {
     const x = rect.left + window.scrollX;
     const y = rect.top + window.scrollY;
 
+    // 防御：表格可能还未渲染出任何行，直接返回避免报错
+    if (!table.rows || table.rows.length === 0) {
+        return;
+    }
+
 
     overlay.style.width = rect.width + "px";
     overlay.style.height = rect.height + "px";
